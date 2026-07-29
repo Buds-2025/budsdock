@@ -1,0 +1,27 @@
+# Build output
+bin/
+obj/
+artifacts/
+outputs/*.zip
+outputs/SHA256SUMS.txt
+BudsDock-Final/
+__pycache__/
+*.pyc
+
+# Local validation evidence
+.adversarial-*/
+.candidate-*/
+.dock-visual-data/
+.feature-*/
+.round1-smoke/
+.visual-validation/
+
+# Local tools and IDE
+.dotnet/
+.vs/
+.idea/
+*.user
+*.suo
+
+# WorkBuddy project data is intentionally retained
+!.workbuddy/

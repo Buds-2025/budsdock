@@ -1,0 +1,164 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+  <sys:String x:Key="App.Name">BudsDock</sys:String>
+  <sys:String x:Key="Action.Settings">设置</sys:String>
+  <sys:String x:Key="Action.Exit">退出</sys:String>
+  <sys:String x:Key="Action.Add">添加程序</sys:String>
+  <sys:String x:Key="Action.Remove">移除</sys:String>
+  <sys:String x:Key="Action.MoveUp">上移</sys:String>
+  <sys:String x:Key="Action.MoveDown">下移</sys:String>
+  <sys:String x:Key="Action.ChooseIcon">选择图标</sys:String>
+  <sys:String x:Key="Action.ResetIcon">恢复自动图标</sys:String>
+  <sys:String x:Key="Action.Export">导出配置</sys:String>
+  <sys:String x:Key="Action.Import">导入配置</sys:String>
+  <sys:String x:Key="Action.OpenData">打开数据目录</sys:String>
+  <sys:String x:Key="Action.ResetAppearance">恢复外观默认值</sys:String>
+  <sys:String x:Key="Action.Close">关闭</sys:String>
+  <sys:String x:Key="Action.Minimize">最小化</sys:String>
+  <sys:String x:Key="Action.Maximize">最大化</sys:String>
+  <sys:String x:Key="Action.Restore">还原</sys:String>
+  <sys:String x:Key="Action.Back">返回列表</sys:String>
+  <sys:String x:Key="Action.Browse">浏览</sys:String>
+  <sys:String x:Key="Action.Clear">清除</sys:String>
+  <sys:String x:Key="Action.BrowseTarget">选择目标程序</sys:String>
+  <sys:String x:Key="Action.BrowseWorkingDirectory">选择工作目录</sys:String>
+  <sys:String x:Key="Action.RestoreInteraction">恢复交互</sys:String>
+
+  <sys:String x:Key="Nav.Icons">图标管理</sys:String>
+  <sys:String x:Key="Nav.Appearance">外观</sys:String>
+  <sys:String x:Key="Nav.Position">位置与行为</sys:String>
+  <sys:String x:Key="Nav.System">启动与系统</sys:String>
+  <sys:String x:Key="Nav.PositionShort">位置</sys:String>
+  <sys:String x:Key="Nav.SystemShort">系统</sys:String>
+
+  <sys:String x:Key="Settings.Title">BudsDock 设置</sys:String>
+  <sys:String x:Key="Settings.Subtitle">修改会实时应用并自动保存</sys:String>
+  <sys:String x:Key="Icons.Title">图标管理</sys:String>
+  <sys:String x:Key="Icons.Help">支持EXE和LNK。也可以把程序文件拖到Dock空白区域。</sys:String>
+  <sys:String x:Key="Icons.Empty">选择一个图标后编辑详情</sys:String>
+  <sys:String x:Key="Icons.EmptyList">尚未添加程序</sys:String>
+  <sys:String x:Key="Icons.NoSelection">已有项目，但尚未选择</sys:String>
+  <sys:String x:Key="Field.NameZh">中文名称</sys:String>
+  <sys:String x:Key="Field.NameEn">英文名称</sys:String>
+  <sys:String x:Key="Field.Target">目标路径</sys:String>
+  <sys:String x:Key="Field.Arguments">启动参数</sys:String>
+  <sys:String x:Key="Field.WorkingDirectory">工作目录</sys:String>
+  <sys:String x:Key="Field.IconStyle">图标外观</sys:String>
+  <sys:String x:Key="Field.RunAsAdmin">以管理员身份运行</sys:String>
+
+  <sys:String x:Key="Appearance.Title">外观</sys:String>
+  <sys:String x:Key="Appearance.Subtitle">调整主题、图标布局与Dock动效。</sys:String>
+  <sys:String x:Key="Appearance.Theme">界面主题</sys:String>
+  <sys:String x:Key="Appearance.Dimensions">尺寸与布局</sys:String>
+  <sys:String x:Key="Appearance.ThemeHelp">可跟随Windows深浅模式，也可手动覆盖。</sys:String>
+  <sys:String x:Key="Appearance.DefaultIconStyle">新图标默认外观</sys:String>
+  <sys:String x:Key="Appearance.DefaultIconStyleHelp">只影响此后添加的程序，现有图标保持原设置。</sys:String>
+  <sys:String x:Key="Appearance.Opacity">背景透明度</sys:String>
+  <sys:String x:Key="Appearance.IconSize">统一图标尺寸</sys:String>
+  <sys:String x:Key="Appearance.Spacing">图标间距</sys:String>
+  <sys:String x:Key="Appearance.Scale">Dock整体缩放</sys:String>
+  <sys:String x:Key="Appearance.Padding">底板内边距</sys:String>
+  <sys:String x:Key="Appearance.Corner">底板圆角</sys:String>
+  <sys:String x:Key="Appearance.Reflection">显示图标倒影</sys:String>
+  <sys:String x:Key="Appearance.ReflectionOpacity">倒影强度</sys:String>
+  <sys:String x:Key="Appearance.Hover">启用悬停放大与淡发光</sys:String>
+  <sys:String x:Key="Appearance.HoverScale">当前图标悬停倍率</sys:String>
+  <sys:String x:Key="Appearance.AdjacentScale">相邻图标悬停倍率</sys:String>
+  <sys:String x:Key="Appearance.Glow">发光强度</sys:String>
+
+  <sys:String x:Key="Position.Title">位置与行为</sys:String>
+  <sys:String x:Key="Position.Help">一键定位始终作用于Windows主显示器；底部居中会与屏幕底部保持2.5个任务栏高度。</sys:String>
+  <sys:String x:Key="Position.Top">顶部居中</sys:String>
+  <sys:String x:Key="Position.Bottom">底部居中</sys:String>
+  <sys:String x:Key="Position.Left">左侧居中</sys:String>
+  <sys:String x:Key="Position.Right">右侧居中</sys:String>
+  <sys:String x:Key="Position.Center">屏幕居中</sys:String>
+  <sys:String x:Key="Position.Free">自定义</sys:String>
+  <sys:String x:Key="Position.PresetActive">当前使用预设位置。拖动Dock后会切换为自定义位置。</sys:String>
+  <sys:String x:Key="Position.CustomActive">当前为自定义位置。</sys:String>
+  <sys:String x:Key="Position.CustomHelp">解锁位置后直接拖动Dock即可调整；“自定义”仅显示状态，不会执行定位。</sys:String>
+  <sys:String x:Key="Behavior.Lock">固定Dock位置</sys:String>
+  <sys:String x:Key="Behavior.LockHelp">关闭后可拖动Dock，拖动结果会自动保存。</sys:String>
+  <sys:String x:Key="Behavior.ClickThrough">鼠标穿透</sys:String>
+  <sys:String x:Key="Behavior.ClickThroughHelp">开启后使用系统托盘或Ctrl＋Alt＋D恢复交互。</sys:String>
+  <sys:String x:Key="Behavior.Topmost">保持置顶</sys:String>
+  <sys:String x:Key="Behavior.HideFullscreen">全屏应用运行时自动隐藏</sys:String>
+
+  <sys:String x:Key="System.Title">启动与系统</sys:String>
+  <sys:String x:Key="System.AutoStart">开机自动启动</sys:String>
+  <sys:String x:Key="System.AutoStartHelp">便携版移动到新位置后，请重新启动一次BudsDock以刷新启动项。</sys:String>
+  <sys:String x:Key="System.Language">界面语言</sys:String>
+  <sys:String x:Key="System.Hotkey">穿透恢复快捷键</sys:String>
+  <sys:String x:Key="System.HotkeyReadOnly">当前版本暂不支持自定义此快捷键。</sys:String>
+  <sys:String x:Key="System.HotkeyAvailable">恢复快捷键可用，也可通过系统托盘恢复交互。</sys:String>
+  <sys:String x:Key="System.Portable">配置和导入图标保存在LocalAppData，不随程序目录迁移。</sys:String>
+
+  <sys:String x:Key="Theme.System">跟随Windows</sys:String>
+  <sys:String x:Key="Theme.Dark">深色</sys:String>
+  <sys:String x:Key="Theme.Light">浅色</sys:String>
+  <sys:String x:Key="Language.System">跟随Windows</sys:String>
+  <sys:String x:Key="Language.Chinese">简体中文</sys:String>
+  <sys:String x:Key="Language.English">English</sys:String>
+  <sys:String x:Key="IconStyle.Original">原图</sys:String>
+  <sys:String x:Key="IconStyle.Tile">圆角底片</sys:String>
+  <sys:String x:Key="IconStyle.Monochrome">单色图标</sys:String>
+
+  <sys:String x:Key="Item.ThisPC">我的电脑</sys:String>
+  <sys:String x:Key="Item.ControlPanel">控制面板</sys:String>
+  <sys:String x:Key="Item.FileExplorer">文件资源管理器</sys:String>
+  <sys:String x:Key="Item.Edge">Microsoft Edge</sys:String>
+  <sys:String x:Key="Item.RecycleBin">回收站</sys:String>
+
+  <sys:String x:Key="Message.LaunchFailed">无法启动该项目</sys:String>
+  <sys:String x:Key="Message.ImportFailed">导入配置失败</sys:String>
+  <sys:String x:Key="Message.IconFailed">导入图标失败</sys:String>
+  <sys:String x:Key="Message.HotkeyUnavailable">Ctrl＋Alt＋D已被其他程序占用，请使用系统托盘恢复交互。</sys:String>
+  <sys:String x:Key="Message.ClickThroughFailed">Windows未能更新鼠标穿透状态。BudsDock已恢复为可交互状态，请重试或重新启动应用。</sys:String>
+  <sys:String x:Key="Message.StartupFailed">开机启动项更新失败。请检查当前用户的注册表权限。</sys:String>
+  <sys:String x:Key="Message.ConfirmImport">导入会替换当前Dock配置。是否继续？</sys:String>
+  <sys:String x:Key="Message.ConfirmResetAppearance">将外观参数恢复为默认值。是否继续？</sys:String>
+  <sys:String x:Key="Message.ConfirmRemove">仅从Dock移除该项目，不会删除原程序。是否继续？</sys:String>
+  <sys:String x:Key="Message.OnlyExeLnk">仅支持添加 EXE 和 LNK 文件。</sys:String>
+  <sys:String x:Key="Message.AlreadyRunning">BudsDock 已在运行。</sys:String>
+  <sys:String x:Key="Message.StartupFailedHard">BudsDock 启动失败。</sys:String>
+  <sys:String x:Key="Message.HotkeyUnavailableShort">恢复快捷键不可用，请使用系统托盘恢复交互。</sys:String>
+  <sys:String x:Key="Message.HotkeyUnavailableTitle">快捷键不可用</sys:String>
+  <sys:String x:Key="Message.OperationFailed">操作失败</sys:String>
+  <sys:String x:Key="Message.ExitSaveFailed">最终保存失败，最新设置可能尚未写入磁盘。</sys:String>
+  <sys:String x:Key="Message.ExitSaveChoices">选择“是”重试，选择“否”放弃本次修改并退出，选择“取消”返回应用。</sys:String>
+
+  <sys:String x:Key="Section.Display">显示</sys:String>
+  <sys:String x:Key="Section.NameIcon">名称与图标</sys:String>
+  <sys:String x:Key="Section.Theme">主题</sys:String>
+  <sys:String x:Key="Section.Launch">启动</sys:String>
+  <sys:String x:Key="Section.Effects">动效</sys:String>
+  <sys:String x:Key="Section.Placement">位置</sys:String>
+  <sys:String x:Key="Section.Behavior">行为</sys:String>
+  <sys:String x:Key="Section.StartupLocale">开机与语言</sys:String>
+  <sys:String x:Key="Section.WindowsStartup">Windows启动</sys:String>
+  <sys:String x:Key="Section.Language">语言</sys:String>
+  <sys:String x:Key="Section.Recovery">交互恢复</sys:String>
+  <sys:String x:Key="Section.Configuration">配置</sys:String>
+
+  <sys:String x:Key="System.Subtitle">设置开机自启动与界面语言。</sys:String>
+  <sys:String x:Key="Status.Ready">等待保存</sys:String>
+  <sys:String x:Key="Status.Saving">正在保存</sys:String>
+  <sys:String x:Key="Status.Saved">已保存</sys:String>
+  <sys:String x:Key="Status.SaveFailed">保存失败，点击重试</sys:String>
+
+  <sys:String x:Key="Format.ItemCount">{0} 项</sys:String>
+  <sys:String x:Key="Format.ReflectionIntensity">倒影强度 · {0:P0}</sys:String>
+  <sys:String x:Key="Format.GlowIntensity">发光强度 · {0:P0}</sys:String>
+  <sys:String x:Key="Format.ExportFilename">BudsDock-配置-{0}.budsdock</sys:String>
+
+  <sys:String x:Key="Filter.Applications">应用程序 (*.exe;*.lnk)|*.exe;*.lnk</sys:String>
+  <sys:String x:Key="Filter.IconImages">图标文件 (*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.ico)|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.ico</sys:String>
+  <sys:String x:Key="Filter.BudsDockBundle">BudsDock 配置包 (*.budsdock)|*.budsdock|JSON 设置 (*.json)|*.json</sys:String>
+
+  <sys:String x:Key="Dock.ContextSettings">设置</sys:String>
+  <sys:String x:Key="Dock.ContextRestoreInteraction">恢复交互</sys:String>
+  <sys:String x:Key="Dock.ContextExit">退出 BudsDock</sys:String>
+  <sys:String x:Key="Dock.EmptyDropHint">拖入 EXE 或 LNK 文件</sys:String>
+  <sys:String x:Key="Dock.EmptyAddHint">或点击 +</sys:String>
+</ResourceDictionary>

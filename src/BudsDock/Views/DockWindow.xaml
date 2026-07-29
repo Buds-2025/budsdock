@@ -1,0 +1,292 @@
+<Window x:Class="BudsDock.Views.DockWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="clr-namespace:BudsDock.Models"
+        xmlns:app="clr-namespace:BudsDock"
+        xmlns:behaviors="clr-namespace:BudsDock.Behaviors"
+        mc:Ignorable="d"
+        Title="BudsDock"
+        AllowsTransparency="True"
+        Background="Transparent"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        MinWidth="220" MinHeight="68"
+        SizeToContent="WidthAndHeight"
+        Topmost="{Binding Settings.Topmost}"
+        AllowDrop="True"
+        Drop="OnDrop"
+        DragOver="OnDragOver"
+        DragLeave="OnDragLeave"
+        PreviewMouseLeftButtonDown="OnPreviewMouseLeftButtonDown">
+  <Window.ContextMenu>
+    <ContextMenu Style="{StaticResource DockContextMenuStyle}">
+      <MenuItem Style="{StaticResource DockContextMenuItemStyle}" Header="{DynamicResource Dock.ContextSettings}" Click="OnOpenSettingsClick"/>
+      <MenuItem Style="{StaticResource DockContextMenuItemStyle}" Header="{DynamicResource Dock.ContextRestoreInteraction}" Click="OnRestoreInteractionClick"
+                IsEnabled="{Binding Settings.IsClickThrough}"/>
+      <Separator Style="{StaticResource DockContextMenuSeparatorStyle}"/>
+      <MenuItem Style="{StaticResource DockContextMenuItemStyle}" Header="{DynamicResource Dock.ContextExit}" Click="OnExitClick"/>
+    </ContextMenu>
+  </Window.ContextMenu>
+  <Window.Resources>
+    <Style x:Key="DockFocusVisual">
+      <Setter Property="Control.Template">
+        <Setter.Value>
+          <ControlTemplate>
+            <Border Margin="-4" CornerRadius="10" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="2"/>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="DockIconButton" TargetType="Button">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource DockFocusVisual}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="Transparent" Padding="2">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <Grid x:Name="DockRoot"
+        SnapsToDevicePixels="True"
+        ClipToBounds="False"
+        PreviewMouseMove="OnDockRootPreviewMouseMove"
+        MouseLeave="OnDockWindowMouseLeave">
+    <Grid.Margin>
+      <MultiBinding Converter="{StaticResource IconSizeToGlowSafeMarginConverter}">
+        <Binding Path="Settings.IconSize"/>
+        <Binding Path="Settings.HoverScale"/>
+        <Binding Path="Settings.DockScale"/>
+      </MultiBinding>
+    </Grid.Margin>
+    <Grid.LayoutTransform>
+      <ScaleTransform ScaleX="{Binding Settings.DockScale}" ScaleY="{Binding Settings.DockScale}"/>
+    </Grid.LayoutTransform>
+
+    <Border Background="{DynamicResource DockSurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{Binding Settings.CornerRadius}"
+            Opacity="{Binding Settings.BackgroundOpacity}"/>
+
+    <ItemsControl x:Name="DockItems"
+                  ItemsSource="{Binding Items}"
+                  Margin="{Binding Settings.PanelPadding}"
+                  ClipToBounds="False">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Orientation="{Binding DataContext.Settings.Orientation,
+                                    RelativeSource={RelativeSource AncestorType=ItemsControl},
+                                    Converter={StaticResource DockOrientationConverter}}"
+                      ClipToBounds="False"/>
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemContainerStyle>
+        <Style TargetType="ContentPresenter">
+          <Setter Property="Margin" Value="{Binding DataContext.Settings.IconSpacing,
+                    RelativeSource={RelativeSource AncestorType=ItemsControl},
+                    Converter={StaticResource SpacingToMarginConverter}}"/>
+          <Setter Property="HorizontalAlignment" Value="Center"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+      </ItemsControl.ItemContainerStyle>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate DataType="{x:Type models:DockItem}">
+          <Grid ClipToBounds="False"
+                behaviors:AnimatedScaleBehavior.TargetScale="{Binding HoverScale}"
+                behaviors:AnimatedScaleBehavior.AnimationsEnabled="{Binding DataContext.Settings.EnableHoverAnimation, RelativeSource={RelativeSource AncestorType=Window}}">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition>
+                <RowDefinition.Height>
+                  <MultiBinding Converter="{StaticResource ReflectionRowHeightConverter}">
+                    <Binding Path="DataContext.Settings.ShowReflection" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                    <Binding Path="DataContext.Settings.Orientation" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                    <Binding Path="DataContext.Settings.IconSize" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                  </MultiBinding>
+                </RowDefinition.Height>
+              </RowDefinition>
+            </Grid.RowDefinitions>
+
+            <Button Grid.Row="0"
+                    Style="{StaticResource DockIconButton}"
+                    Width="{Binding DataContext.Settings.IconSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Height="{Binding DataContext.Settings.IconSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Command="{Binding DataContext.LaunchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    CommandParameter="{Binding}"
+                    MouseEnter="OnIconMouseEnter"
+                    MouseLeave="OnIconMouseLeave">
+              <AutomationProperties.Name>
+                <MultiBinding Converter="{StaticResource DisplayNameConverter}">
+                  <Binding/>
+                  <Binding Path="DataContext.Settings.Language" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                  <Binding Path="Name"/>
+                  <Binding Path="NameEn"/>
+                </MultiBinding>
+              </AutomationProperties.Name>
+              <Button.ToolTip>
+                <TextBlock>
+                  <TextBlock.Text>
+                    <MultiBinding Converter="{StaticResource DisplayNameConverter}">
+                      <Binding/>
+                      <Binding Path="DataContext.Settings.Language" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                      <Binding Path="Name"/>
+                      <Binding Path="NameEn"/>
+                    </MultiBinding>
+                  </TextBlock.Text>
+                </TextBlock>
+              </Button.ToolTip>
+
+              <Grid x:Name="IconVisual" ClipToBounds="False" IsHitTestVisible="False">
+                <Grid.Effect>
+                  <DropShadowEffect BlurRadius="{Binding DataContext.Settings.IconSize, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource IconSizeToGlowBlurConverter}}" ShadowDepth="0">
+                    <DropShadowEffect.Color>
+                      <MultiBinding Converter="{StaticResource IconGlowColorConverter}">
+                        <Binding/>
+                        <Binding Path="CustomIconPath"/>
+                        <Binding Path="TargetPath"/>
+                        <Binding Path="VisualMode"/>
+                        <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                      </MultiBinding>
+                    </DropShadowEffect.Color>
+                    <DropShadowEffect.Opacity>
+                      <MultiBinding Converter="{StaticResource GlowOpacityConverter}">
+                        <Binding Path="IsHovered"/>
+                        <Binding Path="DataContext.Settings.GlowIntensity" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                        <Binding Path="DataContext.Settings.EnableHoverAnimation" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                      </MultiBinding>
+                    </DropShadowEffect.Opacity>
+                  </DropShadowEffect>
+                </Grid.Effect>
+
+                <Grid x:Name="IconCore">
+                  <Grid x:Name="OriginalVisual">
+                  <Image Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Source>
+                      <MultiBinding Converter="{StaticResource IconImageConverter}">
+                        <Binding/>
+                        <Binding Path="CustomIconPath"/>
+                        <Binding Path="TargetPath"/>
+                        <Binding Path="VisualMode"/>
+                        <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                      </MultiBinding>
+                    </Image.Source>
+                  </Image>
+                </Grid>
+
+                <Border x:Name="TileVisual" Visibility="Collapsed" Background="{DynamicResource IconTileBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="8">
+                  <Image Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Source>
+                      <MultiBinding Converter="{StaticResource IconImageConverter}">
+                        <Binding/>
+                        <Binding Path="CustomIconPath"/>
+                        <Binding Path="TargetPath"/>
+                        <Binding Path="VisualMode"/>
+                        <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                      </MultiBinding>
+                    </Image.Source>
+                  </Image>
+                </Border>
+
+                <Rectangle x:Name="MonochromeVisual" Visibility="Collapsed" Fill="{DynamicResource AccentBrush}" Margin="3">
+                  <Rectangle.OpacityMask>
+                    <ImageBrush Stretch="Uniform">
+                      <ImageBrush.ImageSource>
+                        <MultiBinding Converter="{StaticResource IconImageConverter}">
+                          <Binding/>
+                          <Binding Path="CustomIconPath"/>
+                          <Binding Path="TargetPath"/>
+                          <Binding Path="VisualMode"/>
+                          <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                        </MultiBinding>
+                      </ImageBrush.ImageSource>
+                    </ImageBrush>
+                  </Rectangle.OpacityMask>
+                </Rectangle>
+                </Grid>
+                <Border x:Name="HoverIndicator" Width="22" Height="2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Background="{DynamicResource AccentBrush}" CornerRadius="1" Visibility="Collapsed"/>
+              </Grid>
+            </Button>
+
+            <Rectangle Grid.Row="1"
+                       IsHitTestVisible="False"
+                       Margin="4,-1,4,0"
+                       Opacity="{Binding DataContext.Settings.ReflectionOpacity, RelativeSource={RelativeSource AncestorType=Window}}">
+              <Rectangle.Visibility>
+                <MultiBinding Converter="{StaticResource ReflectionVisibilityConverter}">
+                  <Binding Path="DataContext.Settings.ShowReflection" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                  <Binding Path="DataContext.Settings.Orientation" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                </MultiBinding>
+              </Rectangle.Visibility>
+              <Rectangle.Fill>
+                <VisualBrush Visual="{Binding ElementName=IconCore}" Stretch="Fill">
+                  <VisualBrush.RelativeTransform>
+                    <TransformGroup>
+                      <ScaleTransform ScaleY="-1" CenterY="0.5"/>
+                    </TransformGroup>
+                  </VisualBrush.RelativeTransform>
+                </VisualBrush>
+              </Rectangle.Fill>
+              <Rectangle.OpacityMask>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                  <GradientStop Color="#BFFFFFFF" Offset="0"/>
+                  <GradientStop Color="#00FFFFFF" Offset="1"/>
+                </LinearGradientBrush>
+              </Rectangle.OpacityMask>
+            </Rectangle>
+          </Grid>
+          <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding VisualMode}" Value="{x:Static models:IconVisualMode.Tile}">
+              <Setter TargetName="OriginalVisual" Property="Visibility" Value="Collapsed"/>
+              <Setter TargetName="TileVisual" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding VisualMode}" Value="{x:Static models:IconVisualMode.Monochrome}">
+              <Setter TargetName="OriginalVisual" Property="Visibility" Value="Collapsed"/>
+              <Setter TargetName="MonochromeVisual" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsHovered}" Value="True">
+              <Setter TargetName="HoverIndicator" Property="Visibility" Value="Visible"/>
+            </DataTrigger>
+          </DataTemplate.Triggers>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <!-- Empty-state drop hint, shown whenever the Dock has no items.  -->
+    <Border IsHitTestVisible="False"
+            Margin="0"
+            Padding="18,8"
+            CornerRadius="14"
+            BorderThickness="1.5"
+            BorderBrush="{DynamicResource BorderBrush}"
+            Background="Transparent"
+            Visibility="{Binding Items.Count, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+        <TextBlock Text="+" FontSize="20" Foreground="{DynamicResource TextTertiaryBrush}"
+                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <TextBlock Text="{DynamicResource Dock.EmptyDropHint}" VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Drop-target overlay shown while a valid file is being dragged over. -->
+    <Border x:Name="DropOverlay"
+            IsHitTestVisible="False"
+            Visibility="Collapsed"
+            CornerRadius="{Binding Settings.CornerRadius}"
+            BorderThickness="2"
+            BorderBrush="{DynamicResource AccentBrush}"
+            Background="{DynamicResource AccentSoftBrush}"/>
+  </Grid>
+</Window>

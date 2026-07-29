@@ -1,0 +1,860 @@
+<Window x:Class="BudsDock.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:models="clr-namespace:BudsDock.Models"
+        xmlns:services="clr-namespace:BudsDock.Services"
+        xmlns:app="clr-namespace:BudsDock"
+        x:Name="RootWindow"
+        mc:Ignorable="d"
+        Title="{DynamicResource Settings.Title}"
+        Width="960" Height="680" MinWidth="640" MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        PreviewKeyDown="OnPreviewKeyDown"
+        SizeChanged="OnWindowSizeChanged"
+        LocationChanged="OnWindowLocationChanged"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="True"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Background="{DynamicResource WindowBackgroundBrush}">
+  <WindowChrome.WindowChrome>
+    <shell:WindowChrome CaptionHeight="48"
+                        ResizeBorderThickness="6"
+                        CornerRadius="12"
+                        GlassFrameThickness="0"
+                        UseAeroCaptionButtons="False"/>
+  </WindowChrome.WindowChrome>
+
+  <Window.Resources>
+    <ItemsPanelTemplate x:Key="VerticalNavigationPanel">
+      <StackPanel/>
+    </ItemsPanelTemplate>
+    <ItemsPanelTemplate x:Key="HorizontalNavigationPanel">
+      <UniformGrid Rows="1" Columns="4"/>
+    </ItemsPanelTemplate>
+
+    <Style x:Key="NavigationListStyle" TargetType="ListBox">
+      <Setter Property="ItemsPanel" Value="{StaticResource VerticalNavigationPanel}"/>
+      <Setter Property="Padding" Value="8,0"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True">
+          <Setter Property="ItemsPanel" Value="{StaticResource HorizontalNavigationPanel}"/>
+          <Setter Property="Padding" Value="8,6"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="NavigationItemStyle" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+      <Setter Property="Padding" Value="12,10"/>
+      <Setter Property="Margin" Value="0,1"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True">
+          <Setter Property="Padding" Value="8,8"/>
+          <Setter Property="Margin" Value="2,0"/>
+          <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="NavHostStyle" TargetType="Border">
+      <Setter Property="Grid.Row" Value="0"/>
+      <Setter Property="Grid.RowSpan" Value="2"/>
+      <Setter Property="Grid.Column" Value="0"/>
+      <Setter Property="Width" Value="200"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True">
+          <Setter Property="Grid.RowSpan" Value="1"/>
+          <Setter Property="Grid.ColumnSpan" Value="2"/>
+          <Setter Property="Width" Value="Auto"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ContentHostStyle" TargetType="Grid">
+      <Setter Property="Grid.Row" Value="0"/>
+      <Setter Property="Grid.RowSpan" Value="2"/>
+      <Setter Property="Grid.Column" Value="1"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True">
+          <Setter Property="Grid.Row" Value="1"/>
+          <Setter Property="Grid.RowSpan" Value="1"/>
+          <Setter Property="Grid.Column" Value="0"/>
+          <Setter Property="Grid.ColumnSpan" Value="2"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="IconListPanelStyle" TargetType="Border">
+      <Setter Property="Grid.Column" Value="0"/>
+      <Setter Property="Width" Value="280"/>
+      <Style.Triggers>
+        <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+            <Condition Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True"/>
+            <Condition Binding="{Binding IsCompactDetailsOpen}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Grid.ColumnSpan" Value="2"/>
+          <Setter Property="Width" Value="Auto"/>
+        </MultiDataTrigger>
+        <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+            <Condition Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True"/>
+            <Condition Binding="{Binding IsCompactDetailsOpen}" Value="True"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+        </MultiDataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="IconDetailsPanelStyle" TargetType="ScrollViewer">
+      <Setter Property="Grid.Column" Value="1"/>
+      <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Visibility" Value="{Binding SelectedItem, Converter={StaticResource NullToVisibilityConverter}}"/>
+      <Style.Triggers>
+        <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+            <Condition Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True"/>
+            <Condition Binding="{Binding IsCompactDetailsOpen}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+        </MultiDataTrigger>
+        <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+            <Condition Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True"/>
+            <Condition Binding="{Binding IsCompactDetailsOpen}" Value="True"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Grid.Column" Value="0"/>
+          <Setter Property="Grid.ColumnSpan" Value="2"/>
+        </MultiDataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="NoIconSelectionPanelStyle" TargetType="Grid">
+      <Setter Property="Grid.Column" Value="1"/>
+      <Setter Property="Visibility" Value="{Binding SelectedItem, Converter={StaticResource NullToVisibilityInvertedConverter}}"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True">
+          <Setter Property="Visibility" Value="Collapsed"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="CompactBackButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+      <Setter Property="Visibility" Value="Collapsed"/>
+      <Style.Triggers>
+        <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+            <Condition Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True"/>
+            <Condition Binding="{Binding IsCompactDetailsOpen}" Value="True"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Visible"/>
+        </MultiDataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="SettingLabel" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+
+    <Style x:Key="SettingHelp" TargetType="TextBlock" BasedOn="{StaticResource CaptionText}">
+      <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+      <Setter Property="Margin" Value="0,5,0,0"/>
+    </Style>
+  </Window.Resources>
+
+  <Border x:Name="WindowSurface" BorderThickness="0" CornerRadius="12" ClipToBounds="True">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="48"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="40"/>
+      </Grid.RowDefinitions>
+
+      <Grid Grid.Row="0" Background="{DynamicResource HeaderBrush}"
+            MouseLeftButtonDown="OnTitleBarMouseLeftButtonDown">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
+          <Image Width="22" Height="22" Source="{DynamicResource BrandMarkSource}"/>
+          <TextBlock Text="{DynamicResource App.Name}" Style="{StaticResource TitleText}"
+                     FontSize="14" Margin="10,0,0,0" VerticalAlignment="Center"/>
+          <TextBlock Text="/" FontSize="13" Margin="8,0" VerticalAlignment="Center"
+                     Foreground="{DynamicResource TextTertiaryBrush}"/>
+          <TextBlock Text="{DynamicResource Settings.Title}" FontSize="13" VerticalAlignment="Center"
+                     Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,8,0"
+                    shell:WindowChrome.IsHitTestVisibleInChrome="True">
+          <Button Style="{StaticResource WindowChromeButton}" Click="OnMinimizeClick"
+                  ToolTip="{DynamicResource Action.Minimize}"
+                  AutomationProperties.Name="{DynamicResource Action.Minimize}">
+            <Path Width="10" Height="1" Data="M0,0.5 L10,0.5"
+                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                  StrokeThickness="1"/>
+          </Button>
+          <Button x:Name="MaximizeButton" Style="{StaticResource WindowChromeButton}" Click="OnMaximizeRestoreClick"
+                  ToolTip="{DynamicResource Action.Maximize}"
+                  AutomationProperties.Name="{DynamicResource Action.Maximize}" Margin="4,0,0,0">
+            <Grid Width="12" Height="12">
+              <Rectangle Width="10" Height="10"
+                         Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                         StrokeThickness="1" RadiusX="1" RadiusY="1">
+                <Rectangle.Style>
+                  <Style TargetType="Rectangle">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Value="{x:Static WindowState.Maximized}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Rectangle.Style>
+              </Rectangle>
+              <Grid>
+                <Grid.Style>
+                  <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Value="{x:Static WindowState.Maximized}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Grid.Style>
+                <Rectangle Width="8" Height="8" Margin="0,3,3,0" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                           Fill="{DynamicResource HeaderBrush}"
+                           Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                           StrokeThickness="1" RadiusX="1" RadiusY="1"/>
+                <Path Data="M3,4 L3,2 L10,2 L10,9 L8,9"
+                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                      StrokeThickness="1"/>
+              </Grid>
+            </Grid>
+          </Button>
+          <Button Style="{StaticResource WindowChromeButton}" Click="OnCloseClick"
+                  ToolTip="{DynamicResource Action.Close}"
+                  AutomationProperties.Name="{DynamicResource Action.Close}" Margin="4,0,0,0">
+            <Path Width="10" Height="10" Data="M0,0 L10,10 M10,0 L0,10"
+                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                  StrokeThickness="1.2"/>
+          </Button>
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="1">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Style="{StaticResource NavHostStyle}" Background="{DynamicResource SidebarBrush}">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="{DynamicResource Settings.Subtitle}"
+                       Margin="16,18,16,12"
+                       TextWrapping="Wrap">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionText}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True">
+                      <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+            <ListBox Grid.Row="1" x:Name="PageTabs"
+                     Style="{StaticResource NavigationListStyle}"
+                     SelectedIndex="{Binding SelectedPageIndex, Mode=TwoWay}">
+              <ListBoxItem Style="{StaticResource NavigationItemStyle}" AutomationProperties.Name="{DynamicResource Nav.Icons}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#xE71D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                             FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                  <TextBlock Text="{DynamicResource Nav.Icons}" Margin="9,0,0,0"/>
+                </StackPanel>
+              </ListBoxItem>
+              <ListBoxItem Style="{StaticResource NavigationItemStyle}" AutomationProperties.Name="{DynamicResource Nav.Appearance}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#xE790;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                             FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                  <TextBlock Text="{DynamicResource Nav.Appearance}" Margin="9,0,0,0"/>
+                </StackPanel>
+              </ListBoxItem>
+              <ListBoxItem Style="{StaticResource NavigationItemStyle}" AutomationProperties.Name="{DynamicResource Nav.Position}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#xE7C2;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                             FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                  <TextBlock Margin="9,0,0,0">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                        <Setter Property="Text" Value="{DynamicResource Nav.Position}"/>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True">
+                            <Setter Property="Text" Value="{DynamicResource Nav.PositionShort}"/>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </StackPanel>
+              </ListBoxItem>
+              <ListBoxItem Style="{StaticResource NavigationItemStyle}" AutomationProperties.Name="{DynamicResource Nav.System}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                             FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                  <TextBlock Margin="9,0,0,0">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                        <Setter Property="Text" Value="{DynamicResource Nav.System}"/>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsCompactLayout, ElementName=RootWindow}" Value="True">
+                            <Setter Property="Text" Value="{DynamicResource Nav.SystemShort}"/>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </StackPanel>
+              </ListBoxItem>
+            </ListBox>
+          </Grid>
+        </Border>
+
+        <Grid Style="{StaticResource ContentHostStyle}" Background="{DynamicResource ContentBrush}">
+          <!-- 图标管理 -->
+          <Grid Visibility="{Binding SelectedPageIndex, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource IconListPanelStyle}"
+                    Background="{DynamicResource SidebarBrush}"
+                    BorderThickness="0,0,1,0" BorderBrush="{DynamicResource BorderBrush}">
+              <Grid Margin="18,22,18,18">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="*"/>
+                  <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitle}" Margin="0" Text="{DynamicResource Icons.Title}"/>
+                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,3,0,0"
+                               Text="{Binding Settings.Items.Count, Converter={StaticResource FormatStringConverter}, ConverterParameter=Format.ItemCount}"/>
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="{DynamicResource Action.Add}" Command="{Binding AddCommand}"
+                          Style="{StaticResource PrimaryButton}" Padding="12,7"
+                          AutomationProperties.Name="{DynamicResource Action.Add}"/>
+                </Grid>
+
+                <Grid Grid.Row="1">
+                  <ListBox ItemsSource="{Binding Settings.Items}"
+                           SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                           MouseLeftButtonUp="OnIconListMouseLeftButtonUp"
+                           PreviewKeyDown="OnIconListPreviewKeyDown">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="{x:Type models:DockItem}">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="36"/>
+                            <ColumnDefinition Width="*"/>
+                          </Grid.ColumnDefinitions>
+                          <Border Width="32" Height="32" CornerRadius="7"
+                                  Background="{DynamicResource SurfaceAltBrush}">
+                            <Image Stretch="Uniform" Margin="4">
+                              <Image.Source>
+                                <MultiBinding Converter="{StaticResource IconImageConverter}">
+                                  <Binding/>
+                                  <Binding Path="CustomIconPath"/>
+                                  <Binding Path="TargetPath"/>
+                                  <Binding Path="VisualMode"/>
+                                  <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                </MultiBinding>
+                              </Image.Source>
+                            </Image>
+                          </Border>
+                          <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+                              <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource DisplayNameConverter}">
+                                  <Binding/>
+                                  <Binding Path="DataContext.Settings.Language" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                  <Binding Path="Name"/>
+                                  <Binding Path="NameEn"/>
+                                </MultiBinding>
+                              </TextBlock.Text>
+                            </TextBlock>
+                            <TextBlock FontSize="11" Foreground="{DynamicResource TextTertiaryBrush}"
+                                       Text="{Binding TargetPath}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                          </StackPanel>
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+
+                  <StackPanel Visibility="{Binding Settings.Items.Count, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="230">
+                    <TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="28" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Icons.EmptyList}" FontWeight="SemiBold"
+                               TextAlignment="Center" Margin="0,12,0,5"/>
+                    <TextBlock Text="{DynamicResource Icons.Help}" Style="{StaticResource CaptionText}" TextAlignment="Center"/>
+                    <Button Content="{DynamicResource Action.Add}" Command="{Binding AddCommand}"
+                            Style="{StaticResource PrimaryButton}" Margin="0,14,0,0"/>
+                  </StackPanel>
+                </Grid>
+
+                <UniformGrid Grid.Row="2" Columns="3" Margin="0,12,0,0">
+                  <Button Content="{DynamicResource Action.MoveUp}" Command="{Binding MoveUpCommand}" Margin="0,0,4,0"/>
+                  <Button Content="{DynamicResource Action.MoveDown}" Command="{Binding MoveDownCommand}" Margin="4,0"/>
+                  <Button Content="{DynamicResource Action.Remove}" Command="{Binding RemoveCommand}"
+                          Style="{StaticResource DangerButton}" Margin="4,0,0,0"/>
+                </UniformGrid>
+              </Grid>
+            </Border>
+
+            <ScrollViewer Style="{StaticResource IconDetailsPanelStyle}">
+              <StackPanel Margin="28,24,28,20" MaxWidth="1100" HorizontalAlignment="Stretch">
+                <DockPanel Margin="0,0,0,18">
+                  <Button DockPanel.Dock="Left" Content="{DynamicResource Action.Back}"
+                          Command="{Binding BackToIconListCommand}"
+                          Style="{StaticResource CompactBackButtonStyle}" Margin="0,0,10,0"/>
+                  <StackPanel>
+                    <TextBlock Style="{StaticResource TitleText}">
+                      <TextBlock.Text>
+                        <MultiBinding Converter="{StaticResource DisplayNameConverter}">
+                          <Binding Path="SelectedItem"/>
+                          <Binding Path="Settings.Language"/>
+                          <Binding Path="SelectedItem.Name"/>
+                          <Binding Path="SelectedItem.NameEn"/>
+                        </MultiBinding>
+                      </TextBlock.Text>
+                    </TextBlock>
+                    <TextBlock Style="{StaticResource CaptionText}" Text="{Binding SelectedItem.TargetPath}"
+                               TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
+                  </StackPanel>
+                </DockPanel>
+
+                <Border Style="{StaticResource CardBorder}">
+                  <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.NameIcon}"/>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="88"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <Border Width="72" Height="72" CornerRadius="14"
+                              Background="{DynamicResource SurfaceAltBrush}" VerticalAlignment="Top">
+                        <Image Margin="10" Stretch="Uniform">
+                          <Image.Source>
+                            <MultiBinding Converter="{StaticResource IconImageConverter}">
+                              <Binding Path="SelectedItem"/>
+                              <Binding Path="SelectedItem.CustomIconPath"/>
+                              <Binding Path="SelectedItem.TargetPath"/>
+                              <Binding Path="SelectedItem.VisualMode"/>
+                              <Binding Path="ThemeRevision"/>
+                            </MultiBinding>
+                          </Image.Source>
+                        </Image>
+                      </Border>
+                      <StackPanel Grid.Column="1">
+                        <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Field.NameZh}"/>
+                        <TextBox Text="{Binding SelectedItem.Name, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{DynamicResource Field.NameZh}" Margin="0,0,0,12"/>
+                        <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Field.NameEn}"/>
+                        <TextBox Text="{Binding SelectedItem.NameEn, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{DynamicResource Field.NameEn}" Margin="0,0,0,12"/>
+                        <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Field.IconStyle}"/>
+                        <ComboBox x:Name="IconStyleCombo" ItemsSource="{Binding IconVisualModes}"
+                                  SelectedItem="{Binding SelectedItem.VisualMode, Mode=TwoWay}"
+                                  AutomationProperties.Name="{DynamicResource Field.IconStyle}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate><TextBlock Text="{Binding Converter={StaticResource LocalizedEnumConverter}}"/></DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <WrapPanel Margin="0,14,0,0">
+                          <Button Content="{DynamicResource Action.ChooseIcon}" Command="{Binding ChooseIconCommand}" Margin="0,0,8,8"/>
+                          <Button Content="{DynamicResource Action.ResetIcon}" Command="{Binding ResetIconCommand}" Margin="0,0,0,8"/>
+                        </WrapPanel>
+                      </StackPanel>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                  <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.Launch}"/>
+
+                    <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Field.Target}"/>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <TextBox Text="{Binding SelectedItem.TargetPath}" IsReadOnly="True"
+                               AutomationProperties.Name="{DynamicResource Field.Target}"/>
+                      <Button Grid.Column="1" Content="{DynamicResource Action.Browse}"
+                              Command="{Binding BrowseTargetCommand}" Margin="8,0,0,0"/>
+                    </Grid>
+
+                    <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Field.Arguments}" Margin="0,14,0,6"/>
+                    <TextBox Text="{Binding SelectedItem.Arguments, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="{DynamicResource Field.Arguments}"/>
+
+                    <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Field.WorkingDirectory}" Margin="0,14,0,6"/>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <TextBox Text="{Binding SelectedItem.WorkingDirectory}" IsReadOnly="True"
+                               AutomationProperties.Name="{DynamicResource Field.WorkingDirectory}"/>
+                      <Button Grid.Column="1" Content="{DynamicResource Action.Browse}"
+                              Command="{Binding BrowseWorkingDirectoryCommand}" Margin="8,0,0,0"/>
+                      <Button Grid.Column="2" Content="{DynamicResource Action.Clear}"
+                              Command="{Binding ClearWorkingDirectoryCommand}" Margin="8,0,0,0"/>
+                    </Grid>
+
+                    <CheckBox Content="{DynamicResource Field.RunAsAdmin}"
+                              IsChecked="{Binding SelectedItem.RunAsAdministrator}"
+                              AutomationProperties.Name="{DynamicResource Field.RunAsAdmin}" Margin="0,14,0,0"/>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+
+            <Grid Style="{StaticResource NoIconSelectionPanelStyle}">
+              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="280">
+                <TextBlock Text="&#xE8A5;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                           FontSize="30" Foreground="{DynamicResource TextTertiaryBrush}" HorizontalAlignment="Center"/>
+                <TextBlock Text="{DynamicResource Icons.NoSelection}" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" Margin="0,12,0,5"/>
+                <TextBlock Text="{DynamicResource Icons.Empty}" Style="{StaticResource CaptionText}"
+                           TextAlignment="Center"/>
+              </StackPanel>
+            </Grid>
+          </Grid>
+
+          <!-- 外观 -->
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch"
+                        Visibility="{Binding SelectedPageIndex, Converter={StaticResource IntEqualsConverter}, ConverterParameter=1}">
+            <StackPanel Margin="28,24,28,20" MaxWidth="1100" HorizontalAlignment="Stretch">
+              <TextBlock Style="{StaticResource TitleText}" Text="{DynamicResource Appearance.Title}"/>
+              <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource Appearance.Subtitle}" Margin="0,4,0,20"/>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.Theme}"/>
+                  <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Appearance.Theme}"/>
+                  <ComboBox x:Name="ThemeCombo" ItemsSource="{Binding ThemeModes}"
+                            SelectedItem="{Binding Settings.ThemeMode, Mode=TwoWay}"
+                            AutomationProperties.Name="{DynamicResource Appearance.Theme}"
+                            MinWidth="240" HorizontalAlignment="Left">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate><TextBlock Text="{Binding Converter={StaticResource LocalizedEnumConverter}}"/></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Appearance.ThemeHelp}"/>
+
+                  <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Appearance.DefaultIconStyle}" Margin="0,16,0,6"/>
+                  <ComboBox ItemsSource="{Binding IconVisualModes}"
+                            SelectedItem="{Binding Settings.DefaultIconVisualMode, Mode=TwoWay}"
+                            AutomationProperties.Name="{DynamicResource Appearance.DefaultIconStyle}"
+                            MinWidth="240" HorizontalAlignment="Left">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate><TextBlock Text="{Binding Converter={StaticResource LocalizedEnumConverter}}"/></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Appearance.DefaultIconStyleHelp}"/>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Appearance.Dimensions}"/>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="170"/>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                      <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="{DynamicResource Appearance.Opacity}" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Settings.BackgroundOpacity}"
+                            AutomationProperties.Name="{DynamicResource Appearance.Opacity}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Settings.BackgroundOpacity, StringFormat={}{0:P0}}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="1" Text="{DynamicResource Appearance.IconSize}" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="1" Grid.Column="1" Minimum="28" Maximum="112" Value="{Binding Settings.IconSize}" TickFrequency="2" IsSnapToTickEnabled="True"
+                            AutomationProperties.Name="{DynamicResource Appearance.IconSize}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Settings.IconSize, StringFormat={}{0:F0}px}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Text="{DynamicResource Appearance.Spacing}" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="48" Value="{Binding Settings.IconSpacing}" TickFrequency="1" IsSnapToTickEnabled="True"
+                            AutomationProperties.Name="{DynamicResource Appearance.Spacing}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Settings.IconSpacing, StringFormat={}{0:F0}px}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="3" Text="{DynamicResource Appearance.Scale}" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="3" Grid.Column="1" Minimum="0.65" Maximum="1.8" Value="{Binding Settings.DockScale}" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                            AutomationProperties.Name="{DynamicResource Appearance.Scale}"/>
+                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Settings.DockScale, StringFormat={}{0:P0}}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="4" Text="{DynamicResource Appearance.Padding}" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="4" Grid.Column="1" Minimum="4" Maximum="36" Value="{Binding Settings.PanelPadding}" TickFrequency="1" IsSnapToTickEnabled="True"
+                            AutomationProperties.Name="{DynamicResource Appearance.Padding}"/>
+                    <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding Settings.PanelPadding, StringFormat={}{0:F0}px}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="5" Text="{DynamicResource Appearance.Corner}" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="5" Grid.Column="1" Minimum="0" Maximum="36" Value="{Binding Settings.CornerRadius}" TickFrequency="1" IsSnapToTickEnabled="True"
+                            AutomationProperties.Name="{DynamicResource Appearance.Corner}"/>
+                    <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding Settings.CornerRadius, StringFormat={}{0:F0}px}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.Effects}"/>
+                  <CheckBox Content="{DynamicResource Appearance.Reflection}" IsChecked="{Binding Settings.ShowReflection}"/>
+                  <TextBlock Text="{DynamicResource Appearance.ReflectionOpacity}" Style="{StaticResource SettingLabel}" Margin="28,8,0,4"/>
+                  <Grid Margin="28,0,0,12">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="70"/></Grid.ColumnDefinitions>
+                    <Slider Minimum="0" Maximum="0.7" Value="{Binding Settings.ReflectionOpacity}"
+                            IsEnabled="{Binding Settings.ShowReflection}" AutomationProperties.Name="{DynamicResource Appearance.ReflectionOpacity}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Settings.ReflectionOpacity, StringFormat={}{0:P0}}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                  </Grid>
+
+                  <CheckBox Content="{DynamicResource Appearance.Hover}" IsChecked="{Binding Settings.EnableHoverAnimation}"/>
+                  <Grid Margin="28,8,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition/><ColumnDefinition Width="70"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <TextBlock Text="{DynamicResource Appearance.Glow}" VerticalAlignment="Center"/>
+                    <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Settings.GlowIntensity}"
+                            IsEnabled="{Binding Settings.EnableHoverAnimation}" AutomationProperties.Name="{DynamicResource Appearance.Glow}"/>
+                    <TextBlock Grid.Column="2" Text="{Binding Settings.GlowIntensity, StringFormat={}{0:P0}}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="1" Text="{DynamicResource Appearance.HoverScale}" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="1.65" Value="{Binding Settings.HoverScale}" TickFrequency="0.01"
+                            IsEnabled="{Binding Settings.EnableHoverAnimation}" AutomationProperties.Name="{DynamicResource Appearance.HoverScale}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Settings.HoverScale, StringFormat={}{0:P0}}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Text="{DynamicResource Appearance.AdjacentScale}" VerticalAlignment="Center"/>
+                    <Slider Grid.Row="2" Grid.Column="1" Minimum="1" Maximum="1.3" Value="{Binding Settings.AdjacentHoverScale}" TickFrequency="0.01"
+                            IsEnabled="{Binding Settings.EnableHoverAnimation}" AutomationProperties.Name="{DynamicResource Appearance.AdjacentScale}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Settings.AdjacentHoverScale, StringFormat={}{0:P0}}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Button Content="{DynamicResource Action.ResetAppearance}" Command="{Binding ResetAppearanceCommand}"
+                      Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Margin="0,4,0,0"/>
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- 位置与行为 -->
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch"
+                        Visibility="{Binding SelectedPageIndex, Converter={StaticResource IntEqualsConverter}, ConverterParameter=2}">
+            <StackPanel Margin="28,24,28,20" MaxWidth="1100" HorizontalAlignment="Stretch">
+              <TextBlock Style="{StaticResource TitleText}" Text="{DynamicResource Position.Title}"/>
+              <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource Position.Help}" Margin="0,4,0,20"/>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.Placement}"/>
+                  <Grid MaxWidth="700" HorizontalAlignment="Stretch">
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <RadioButton Grid.Row="0" Grid.Column="1" GroupName="DockPlacement" Style="{StaticResource PlacementTileButton}"
+                                  Content="{DynamicResource Position.Top}" Command="{Binding PlacementCommand}"
+                                  CommandParameter="{x:Static models:DockPlacement.TopCenter}"
+                                  IsChecked="{Binding Settings.Placement, Mode=OneWay, Converter={StaticResource PlacementEqualsConverter}, ConverterParameter={x:Static models:DockPlacement.TopCenter}}"
+                                  AutomationProperties.Name="{DynamicResource Position.Top}" Margin="4"/>
+                    <RadioButton Grid.Row="1" Grid.Column="0" GroupName="DockPlacement" Style="{StaticResource PlacementTileButton}"
+                                  Content="{DynamicResource Position.Left}" Command="{Binding PlacementCommand}"
+                                  CommandParameter="{x:Static models:DockPlacement.LeftCenter}"
+                                  IsChecked="{Binding Settings.Placement, Mode=OneWay, Converter={StaticResource PlacementEqualsConverter}, ConverterParameter={x:Static models:DockPlacement.LeftCenter}}"
+                                  AutomationProperties.Name="{DynamicResource Position.Left}" Margin="4"/>
+                    <RadioButton Grid.Row="1" Grid.Column="1" GroupName="DockPlacement" Style="{StaticResource PlacementTileButton}"
+                                  Content="{DynamicResource Position.Center}" Command="{Binding PlacementCommand}"
+                                  CommandParameter="{x:Static models:DockPlacement.ScreenCenter}"
+                                  IsChecked="{Binding Settings.Placement, Mode=OneWay, Converter={StaticResource PlacementEqualsConverter}, ConverterParameter={x:Static models:DockPlacement.ScreenCenter}}"
+                                  AutomationProperties.Name="{DynamicResource Position.Center}" Margin="4"/>
+                    <RadioButton Grid.Row="1" Grid.Column="2" GroupName="DockPlacement" Style="{StaticResource PlacementTileButton}"
+                                  Content="{DynamicResource Position.Right}" Command="{Binding PlacementCommand}"
+                                  CommandParameter="{x:Static models:DockPlacement.RightCenter}"
+                                  IsChecked="{Binding Settings.Placement, Mode=OneWay, Converter={StaticResource PlacementEqualsConverter}, ConverterParameter={x:Static models:DockPlacement.RightCenter}}"
+                                  AutomationProperties.Name="{DynamicResource Position.Right}" Margin="4"/>
+                    <RadioButton Grid.Row="2" Grid.Column="1" GroupName="DockPlacement" Style="{StaticResource PlacementTileButton}"
+                                  Content="{DynamicResource Position.Bottom}" Command="{Binding PlacementCommand}"
+                                  CommandParameter="{x:Static models:DockPlacement.BottomCenter}"
+                                  IsChecked="{Binding Settings.Placement, Mode=OneWay, Converter={StaticResource PlacementEqualsConverter}, ConverterParameter={x:Static models:DockPlacement.BottomCenter}}"
+                                  AutomationProperties.Name="{DynamicResource Position.Bottom}" Margin="4"/>
+                  </Grid>
+                  <Border Background="{DynamicResource SurfaceAltBrush}" CornerRadius="8" Padding="12,10" Margin="0,14,0,0">
+                    <StackPanel>
+                      <TextBlock FontWeight="SemiBold">
+                        <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="{DynamicResource Position.PresetActive}"/>
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding Settings.Placement, Converter={StaticResource PlacementEqualsConverter}, ConverterParameter={x:Static models:DockPlacement.Free}}" Value="True">
+                                <Setter Property="Text" Value="{DynamicResource Position.CustomActive}"/>
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
+                      <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Position.CustomHelp}"/>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.Behavior}"/>
+                  <CheckBox Content="{DynamicResource Behavior.Lock}" IsChecked="{Binding Settings.IsPositionLocked}"/>
+                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Behavior.LockHelp}" Margin="28,0,0,8"/>
+                  <CheckBox Content="{DynamicResource Behavior.ClickThrough}" IsChecked="{Binding Settings.IsClickThrough}"/>
+                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Behavior.ClickThroughHelp}" Margin="28,0,0,8"/>
+                  <CheckBox Content="{DynamicResource Behavior.Topmost}" IsChecked="{Binding Settings.Topmost}"/>
+                  <CheckBox Content="{DynamicResource Behavior.HideFullscreen}" IsChecked="{Binding Settings.HideOnFullscreen}"/>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+
+          <!-- 启动与系统 -->
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch"
+                        Visibility="{Binding SelectedPageIndex, Converter={StaticResource IntEqualsConverter}, ConverterParameter=3}">
+            <StackPanel Margin="28,24,28,20" MaxWidth="1100" HorizontalAlignment="Stretch">
+              <TextBlock Style="{StaticResource TitleText}" Text="{DynamicResource System.Title}"/>
+              <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource System.Subtitle}" Margin="0,4,0,20"/>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.WindowsStartup}"/>
+                  <CheckBox Content="{DynamicResource System.AutoStart}" IsChecked="{Binding Settings.AutoStart}"/>
+                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource System.AutoStartHelp}" Margin="28,0,0,0"/>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.Language}"/>
+                  <ComboBox x:Name="LanguageCombo" ItemsSource="{Binding Languages}"
+                            SelectedItem="{Binding Settings.Language, Mode=TwoWay}"
+                            AutomationProperties.Name="{DynamicResource System.Language}"
+                            MinWidth="240" HorizontalAlignment="Left">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate><TextBlock Text="{Binding Converter={StaticResource LocalizedEnumConverter}}"/></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.Recovery}"/>
+                  <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource System.Hotkey}"/>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto"/>
+                      <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="7" Padding="12,8">
+                      <TextBlock Text="{Binding Settings.Hotkey}" FontWeight="SemiBold" FontFamily="Consolas"/>
+                    </Border>
+                    <TextBlock Grid.Column="1" Text="{Binding RecoveryHotkeyStatusText}" Margin="12,0,0,0"
+                               VerticalAlignment="Center" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                  </Grid>
+                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Behavior.ClickThroughHelp}"/>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.Configuration}"/>
+                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource System.Portable}" Margin="0,0,0,12"/>
+                  <WrapPanel>
+                    <Button Content="{DynamicResource Action.Export}" Command="{Binding ExportCommand}" Margin="0,0,8,8"/>
+                    <Button Content="{DynamicResource Action.Import}" Command="{Binding ImportCommand}" Margin="0,0,8,8"/>
+                    <Button Content="{DynamicResource Action.OpenData}" Command="{Binding OpenDataDirectoryCommand}" Margin="0,0,0,8"/>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </Grid>
+
+      <Border Grid.Row="2" Background="{DynamicResource SidebarBrush}" Padding="18,8">
+        <DockPanel>
+          <Border DockPanel.Dock="Left" CornerRadius="10" Padding="10,3"
+                  Background="{DynamicResource SurfaceAltBrush}">
+            <Grid>
+              <TextBlock Text="{Binding SaveStatusText}" FontSize="11" VerticalAlignment="Center"
+                         AutomationProperties.LiveSetting="Polite">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding SaveState}" Value="{x:Static services:SaveState.Saving}">
+                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding SaveState}" Value="{x:Static services:SaveState.Failed}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <Button Content="{Binding SaveStatusText}" Command="{Binding RetrySaveCommand}"
+                      Foreground="{DynamicResource DangerBrush}" Background="Transparent"
+                      BorderThickness="0" Padding="0" FontSize="11"
+                      AutomationProperties.Name="{Binding SaveStatusText}">
+                <Button.Style>
+                  <Style TargetType="Button" BasedOn="{StaticResource ModernButton}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding SaveState}" Value="{x:Static services:SaveState.Failed}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Button.Style>
+              </Button>
+            </Grid>
+          </Border>
+          <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
+                     Style="{StaticResource CaptionText}" Foreground="{DynamicResource TextTertiaryBrush}">
+            <Run Text="{DynamicResource App.Name}"/><Run Text=" · "/><Run Text="{x:Static app:AppInfo.Version}"/>
+          </TextBlock>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </Border>
+</Window>
