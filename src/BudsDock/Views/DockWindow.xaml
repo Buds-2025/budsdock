@@ -99,12 +99,20 @@
                     Converter={StaticResource SpacingToMarginConverter}}"/>
           <Setter Property="HorizontalAlignment" Value="Center"/>
           <Setter Property="VerticalAlignment" Value="Center"/>
+          <Setter Property="Panel.ZIndex" Value="0"/>
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding IsHovered}" Value="True">
+              <Setter Property="Panel.ZIndex" Value="20"/>
+            </DataTrigger>
+          </Style.Triggers>
         </Style>
       </ItemsControl.ItemContainerStyle>
       <ItemsControl.ItemTemplate>
         <DataTemplate DataType="{x:Type models:DockItem}">
           <Grid ClipToBounds="False"
                 behaviors:AnimatedScaleBehavior.TargetScale="{Binding HoverScale}"
+                behaviors:AnimatedScaleBehavior.TargetOffsetX="{Binding HoverOffsetX}"
+                behaviors:AnimatedScaleBehavior.TargetOffsetY="{Binding HoverOffsetY}"
                 behaviors:AnimatedScaleBehavior.AnimationsEnabled="{Binding DataContext.Settings.EnableHoverAnimation, RelativeSource={RelativeSource AncestorType=Window}}">
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto"/>
@@ -149,28 +157,63 @@
               </Button.ToolTip>
 
               <Grid x:Name="IconVisual" ClipToBounds="False" IsHitTestVisible="False">
-                <Grid.Effect>
-                  <DropShadowEffect BlurRadius="{Binding DataContext.Settings.IconSize, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource IconSizeToGlowBlurConverter}}" ShadowDepth="0">
-                    <DropShadowEffect.Color>
-                      <MultiBinding Converter="{StaticResource IconGlowColorConverter}">
-                        <Binding/>
-                        <Binding Path="CustomIconPath"/>
-                        <Binding Path="TargetPath"/>
-                        <Binding Path="VisualMode"/>
-                        <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                      </MultiBinding>
-                    </DropShadowEffect.Color>
-                    <DropShadowEffect.Opacity>
-                      <MultiBinding Converter="{StaticResource GlowOpacityConverter}">
-                        <Binding Path="IsHovered"/>
-                        <Binding Path="DataContext.Settings.GlowIntensity" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                        <Binding Path="DataContext.Settings.EnableHoverAnimation" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                      </MultiBinding>
-                    </DropShadowEffect.Opacity>
-                  </DropShadowEffect>
-                </Grid.Effect>
+                <Ellipse Opacity="0" RenderTransformOrigin="0.5,0.5"
+                         behaviors:AnimatedOpacityBehavior.AnimationsEnabled="{Binding DataContext.Settings.EnableHoverAnimation, RelativeSource={RelativeSource AncestorType=Window}}">
+                  <Ellipse.RenderTransform>
+                    <ScaleTransform ScaleX="1.72" ScaleY="1.72"/>
+                  </Ellipse.RenderTransform>
+                  <Ellipse.Fill>
+                    <SolidColorBrush>
+                      <SolidColorBrush.Color>
+                        <MultiBinding Converter="{StaticResource IconGlowColorConverter}">
+                          <Binding/>
+                          <Binding Path="CustomIconPath"/>
+                          <Binding Path="TargetPath"/>
+                          <Binding Path="VisualMode"/>
+                          <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                        </MultiBinding>
+                      </SolidColorBrush.Color>
+                    </SolidColorBrush>
+                  </Ellipse.Fill>
+                  <behaviors:AnimatedOpacityBehavior.TargetOpacity>
+                    <MultiBinding Converter="{StaticResource AmbientGlowOpacityConverter}">
+                      <Binding Path="IsHovered"/>
+                      <Binding Path="DataContext.Settings.GlowIntensity" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                      <Binding Path="DataContext.Settings.EnableHoverAnimation" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                    </MultiBinding>
+                  </behaviors:AnimatedOpacityBehavior.TargetOpacity>
+                  <Ellipse.OpacityMask>
+                    <RadialGradientBrush>
+                      <GradientStop Color="#C0FFFFFF" Offset="0"/>
+                      <GradientStop Color="#50FFFFFF" Offset="0.46"/>
+                      <GradientStop Color="#00FFFFFF" Offset="1"/>
+                    </RadialGradientBrush>
+                  </Ellipse.OpacityMask>
+                </Ellipse>
 
-                <Grid x:Name="IconCore">
+                <Grid>
+                  <Grid.Effect>
+                    <DropShadowEffect BlurRadius="{Binding DataContext.Settings.IconSize, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource IconSizeToGlowBlurConverter}}"
+                                      ShadowDepth="0" RenderingBias="Performance">
+                      <DropShadowEffect.Color>
+                        <MultiBinding Converter="{StaticResource IconGlowColorConverter}">
+                          <Binding/>
+                          <Binding Path="CustomIconPath"/>
+                          <Binding Path="TargetPath"/>
+                          <Binding Path="VisualMode"/>
+                          <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                        </MultiBinding>
+                      </DropShadowEffect.Color>
+                      <DropShadowEffect.Opacity>
+                        <MultiBinding Converter="{StaticResource GlowOpacityConverter}">
+                          <Binding Path="IsHovered"/>
+                          <Binding Path="DataContext.Settings.GlowIntensity" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                          <Binding Path="DataContext.Settings.EnableHoverAnimation" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                        </MultiBinding>
+                      </DropShadowEffect.Opacity>
+                    </DropShadowEffect>
+                  </Grid.Effect>
+                  <Grid x:Name="IconCore">
                   <Grid x:Name="OriginalVisual">
                   <Image Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality">
                     <Image.Source>
@@ -214,6 +257,7 @@
                     </ImageBrush>
                   </Rectangle.OpacityMask>
                 </Rectangle>
+                  </Grid>
                 </Grid>
                 <Border x:Name="HoverIndicator" Width="22" Height="2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Background="{DynamicResource AccentBrush}" CornerRadius="1" Visibility="Collapsed"/>
               </Grid>

@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using Microsoft.Win32;
 using System.Windows;
 using BudsDock.Models;
 
@@ -18,9 +17,8 @@ public sealed class ThemeService : INotifyPropertyChanged
     {
         IsDark = requestedMode switch
         {
-            ThemeMode.Dark => true,
             ThemeMode.Light => false,
-            _ => !SystemUsesLightTheme()
+            _ => true
         };
 
         var fileName = IsDark ? "Theme.Dark.xaml" : "Theme.Light.xaml";
@@ -35,16 +33,4 @@ public sealed class ThemeService : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Revision)));
     }
 
-    private static bool SystemUsesLightTheme()
-    {
-        try
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
-            return key?.GetValue("AppsUseLightTheme") is int value && value != 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
 }

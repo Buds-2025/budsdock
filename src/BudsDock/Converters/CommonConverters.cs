@@ -150,7 +150,18 @@ public sealed class GlowOpacityConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         => values.Length >= 3 && values[0] is true && values[1] is double intensity && values[2] is true
-            ? Math.Clamp(intensity * 0.46, 0, 0.42)
+            ? Math.Clamp(intensity * 0.62, 0, 0.55)
+            : 0d;
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public sealed class AmbientGlowOpacityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        => values.Length >= 3 && values[0] is true && values[1] is double intensity && values[2] is true
+            ? Math.Clamp(intensity * 1.15, 0, 0.78)
             : 0d;
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
@@ -160,7 +171,7 @@ public sealed class GlowOpacityConverter : IMultiValueConverter
 public sealed class IconSizeToGlowBlurConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        => value is double size ? Math.Clamp(size * 0.78, 18.0, 72.0) : 42.0;
+        => value is double size ? Math.Clamp(size * 0.50, 16.0, 52.0) : 27.0;
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
@@ -173,8 +184,10 @@ public sealed class IconSizeToGlowSafeMarginConverter : IMultiValueConverter
         var size = values.Length > 0 && values[0] is double iconSize ? iconSize : 54d;
         var hoverScale = values.Length > 1 && values[1] is double hover ? hover : 1.5d;
         var dockScale = values.Length > 2 && values[2] is double dock ? dock : 1d;
-        var blurRadius = Math.Clamp(size * 0.78, 18d, 72d);
-        var margin = Math.Ceiling((blurRadius * Math.Max(1d, hoverScale) * Math.Max(1d, dockScale)) + 8d);
+        var blurRadius = Math.Clamp(size * 0.50, 16d, 52d);
+        var ambientExtent = size * 0.38;
+        var effectExtent = Math.Max(blurRadius, ambientExtent);
+        var margin = Math.Ceiling((effectExtent * Math.Max(1d, hoverScale) * Math.Max(1d, dockScale)) + 6d);
         return new Thickness(margin);
     }
 
@@ -224,7 +237,7 @@ public sealed class LocalizedEnumConverter : IValueConverter
     {
         var key = value switch
         {
-            ThemeMode.System => "Theme.System",
+            ThemeMode.System => "Theme.Dark",
             ThemeMode.Dark => "Theme.Dark",
             ThemeMode.Light => "Theme.Light",
             AppLanguage.System => "Language.System",

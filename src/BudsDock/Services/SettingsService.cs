@@ -500,7 +500,9 @@ public sealed class SettingsService : INotifyPropertyChanged
     private static void Normalize(AppSettings settings)
     {
         settings.SchemaVersion = CurrentSchemaVersion;
-        settings.ThemeMode = Enum.IsDefined(settings.ThemeMode) ? settings.ThemeMode : ThemeMode.System;
+        settings.ThemeMode = settings.ThemeMode is ThemeMode.Dark or ThemeMode.Light
+            ? settings.ThemeMode
+            : ThemeMode.Dark;
         settings.Language = Enum.IsDefined(settings.Language) ? settings.Language : AppLanguage.System;
         settings.Orientation = Enum.IsDefined(settings.Orientation) ? settings.Orientation : DockOrientation.Horizontal;
         settings.Placement = Enum.IsDefined(settings.Placement) ? settings.Placement : DockPlacement.BottomCenter;
@@ -606,7 +608,10 @@ public sealed class SettingsService : INotifyPropertyChanged
 
     private void ItemOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(DockItem.HoverScale) or nameof(DockItem.IsHovered))
+        if (e.PropertyName is nameof(DockItem.HoverScale)
+            or nameof(DockItem.HoverOffsetX)
+            or nameof(DockItem.HoverOffsetY)
+            or nameof(DockItem.IsHovered))
         {
             return;
         }

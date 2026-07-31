@@ -6,7 +6,7 @@ namespace BudsDock.Models;
 public sealed class AppSettings : ObservableObject
 {
     private int _schemaVersion = 2;
-    private ThemeMode _themeMode = ThemeMode.System;
+    private ThemeMode _themeMode = ThemeMode.Dark;
     private AppLanguage _language = AppLanguage.System;
     private DockOrientation _orientation = DockOrientation.Horizontal;
     private DockPlacement _placement = DockPlacement.BottomCenter;

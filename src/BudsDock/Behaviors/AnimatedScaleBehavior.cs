@@ -6,9 +6,15 @@ namespace BudsDock.Behaviors;
 
 public static class AnimatedScaleBehavior
 {
-    private static readonly DependencyProperty ScaleTransformProperty = DependencyProperty.RegisterAttached(
-        "ScaleTransform",
+    private static readonly DependencyProperty AnimatedTransformProperty = DependencyProperty.RegisterAttached(
+        "AnimatedTransform",
         typeof(ScaleTransform),
+        typeof(AnimatedScaleBehavior),
+        new PropertyMetadata(null));
+
+    private static readonly DependencyProperty AnimatedOffsetProperty = DependencyProperty.RegisterAttached(
+        "AnimatedOffset",
+        typeof(TranslateTransform),
         typeof(AnimatedScaleBehavior),
         new PropertyMetadata(null));
 
@@ -24,16 +30,40 @@ public static class AnimatedScaleBehavior
         typeof(AnimatedScaleBehavior),
         new PropertyMetadata(true, OnAnimationsEnabledChanged));
 
+    public static readonly DependencyProperty TargetOffsetXProperty = DependencyProperty.RegisterAttached(
+        "TargetOffsetX",
+        typeof(double),
+        typeof(AnimatedScaleBehavior),
+        new PropertyMetadata(0d, OnTargetOffsetChanged));
+
+    public static readonly DependencyProperty TargetOffsetYProperty = DependencyProperty.RegisterAttached(
+        "TargetOffsetY",
+        typeof(double),
+        typeof(AnimatedScaleBehavior),
+        new PropertyMetadata(0d, OnTargetOffsetChanged));
+
     public static void SetTargetScale(DependencyObject element, double value) => element.SetValue(TargetScaleProperty, value);
     public static double GetTargetScale(DependencyObject element) => (double)element.GetValue(TargetScaleProperty);
     public static void SetAnimationsEnabled(DependencyObject element, bool value) => element.SetValue(AnimationsEnabledProperty, value);
     public static bool GetAnimationsEnabled(DependencyObject element) => (bool)element.GetValue(AnimationsEnabledProperty);
+    public static void SetTargetOffsetX(DependencyObject element, double value) => element.SetValue(TargetOffsetXProperty, value);
+    public static double GetTargetOffsetX(DependencyObject element) => (double)element.GetValue(TargetOffsetXProperty);
+    public static void SetTargetOffsetY(DependencyObject element, double value) => element.SetValue(TargetOffsetYProperty, value);
+    public static double GetTargetOffsetY(DependencyObject element) => (double)element.GetValue(TargetOffsetYProperty);
 
     private static void OnTargetScaleChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
     {
         if (dependencyObject is FrameworkElement element && e.NewValue is double target)
         {
-            ApplyScale(element, target);
+            ApplyTransform(element, target, GetTargetOffsetX(element), GetTargetOffsetY(element));
+        }
+    }
+
+    private static void OnTargetOffsetChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
+    {
+        if (dependencyObject is FrameworkElement element)
+        {
+            ApplyTransform(element, GetTargetScale(element), GetTargetOffsetX(element), GetTargetOffsetY(element));
         }
     }
 
@@ -41,61 +71,91 @@ public static class AnimatedScaleBehavior
     {
         if (dependencyObject is FrameworkElement element)
         {
-            ApplyScale(element, GetTargetScale(element));
+            ApplyTransform(element, GetTargetScale(element), GetTargetOffsetX(element), GetTargetOffsetY(element));
         }
     }
 
-    private static void ApplyScale(FrameworkElement element, double target)
+    private static void ApplyTransform(FrameworkElement element, double targetScale, double targetX, double targetY)
     {
-        var transform = element.GetValue(ScaleTransformProperty) as ScaleTransform;
-        if (transform is null)
+        var scale = element.GetValue(AnimatedTransformProperty) as ScaleTransform;
+        var offset = element.GetValue(AnimatedOffsetProperty) as TranslateTransform;
+        if (scale is null || offset is null)
         {
-            transform = new ScaleTransform(1, 1);
-            var existing = element.LayoutTransform;
-            if (existing is null || existing.Value.IsIdentity)
+            scale = new ScaleTransform(1, 1);
+            offset = new TranslateTransform();
+            var existing = element.RenderTransform;
+            var group = new TransformGroup();
+            if (existing is not null && !existing.Value.IsIdentity)
             {
-                element.LayoutTransform = transform;
-            }
-            else
-            {
-                var group = new TransformGroup();
                 group.Children.Add(existing.CloneCurrentValue());
-                group.Children.Add(transform);
-                element.LayoutTransform = group;
             }
-            element.SetValue(ScaleTransformProperty, transform);
+            group.Children.Add(scale);
+            group.Children.Add(offset);
+            element.RenderTransform = group;
+            element.RenderTransformOrigin = new Point(0.5, 0.5);
+            element.SetValue(AnimatedTransformProperty, scale);
+            element.SetValue(AnimatedOffsetProperty, offset);
         }
 
         if (!GetAnimationsEnabled(element) || !SystemParameters.ClientAreaAnimation)
         {
-            transform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-            transform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-            transform.ScaleX = target;
-            transform.ScaleY = target;
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            offset.BeginAnimation(TranslateTransform.XProperty, null);
+            offset.BeginAnimation(TranslateTransform.YProperty, null);
+            scale.ScaleX = targetScale;
+            scale.ScaleY = targetScale;
+            offset.X = targetX;
+            offset.Y = targetY;
             return;
         }
 
-        var current = transform.ScaleX;
-        var isGrowing = target > current;
-        var duration = TimeSpan.FromMilliseconds(isGrowing ? 155 : 210);
+        var current = scale.ScaleX;
+        var isGrowing = targetScale > current;
+        var duration = TimeSpan.FromMilliseconds(isGrowing ? 170 : 230);
         var animation = new DoubleAnimation
         {
             From = current,
-            To = target,
+            To = targetScale,
             Duration = duration,
             EasingFunction = isGrowing
-                ? new QuinticEase { EasingMode = EasingMode.EaseOut }
+                ? new QuarticEase { EasingMode = EasingMode.EaseOut }
                 : new CubicEase { EasingMode = EasingMode.EaseOut },
             FillBehavior = FillBehavior.Stop
         };
         animation.Completed += (_, _) =>
         {
-            transform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-            transform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-            transform.ScaleX = target;
-            transform.ScaleY = target;
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            scale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            scale.ScaleX = targetScale;
+            scale.ScaleY = targetScale;
         };
-        transform.BeginAnimation(ScaleTransform.ScaleXProperty, animation, HandoffBehavior.SnapshotAndReplace);
-        transform.BeginAnimation(ScaleTransform.ScaleYProperty, animation.Clone(), HandoffBehavior.SnapshotAndReplace);
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, animation, HandoffBehavior.SnapshotAndReplace);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, animation.Clone(), HandoffBehavior.SnapshotAndReplace);
+        AnimateOffset(offset, TranslateTransform.XProperty, offset.X, targetX, duration);
+        AnimateOffset(offset, TranslateTransform.YProperty, offset.Y, targetY, duration);
+    }
+
+    private static void AnimateOffset(
+        TranslateTransform transform,
+        DependencyProperty property,
+        double current,
+        double target,
+        TimeSpan duration)
+    {
+        var animation = new DoubleAnimation
+        {
+            From = current,
+            To = target,
+            Duration = duration,
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            FillBehavior = FillBehavior.Stop
+        };
+        animation.Completed += (_, _) =>
+        {
+            transform.BeginAnimation(property, null);
+            transform.SetValue(property, target);
+        };
+        transform.BeginAnimation(property, animation, HandoffBehavior.SnapshotAndReplace);
     }
 }

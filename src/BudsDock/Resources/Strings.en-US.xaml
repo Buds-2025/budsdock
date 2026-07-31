@@ -51,7 +51,7 @@
   <sys:String x:Key="Appearance.Subtitle">Adjust the theme, icon layout, and Dock motion.</sys:String>
   <sys:String x:Key="Appearance.Theme">Interface theme</sys:String>
   <sys:String x:Key="Appearance.Dimensions">Dimensions &amp; layout</sys:String>
-  <sys:String x:Key="Appearance.ThemeHelp">Follow Windows light/dark mode or choose an override.</sys:String>
+  <sys:String x:Key="Appearance.ThemeHelp">Choose dark or light. The Dock, menus, and settings panel switch together.</sys:String>
   <sys:String x:Key="Appearance.DefaultIconStyle">Default style for new icons</sys:String>
   <sys:String x:Key="Appearance.DefaultIconStyleHelp">Applies to applications added later. Existing icons keep their current style.</sys:String>
   <sys:String x:Key="Appearance.Opacity">Background opacity</sys:String>
@@ -94,7 +94,6 @@
   <sys:String x:Key="System.HotkeyAvailable">The recovery hotkey is available. The tray menu can also restore interaction.</sys:String>
   <sys:String x:Key="System.Portable">Settings and imported icons are stored in LocalAppData and do not move with the app folder.</sys:String>
 
-  <sys:String x:Key="Theme.System">Follow Windows</sys:String>
   <sys:String x:Key="Theme.Dark">Dark</sys:String>
   <sys:String x:Key="Theme.Light">Light</sys:String>
   <sys:String x:Key="Language.System">Follow Windows</sys:String>

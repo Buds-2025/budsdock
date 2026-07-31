@@ -59,7 +59,11 @@ public sealed class SettingsViewModel : ObservableObject
 
     public AppSettings Settings => _settingsService.Settings;
     public int ThemeRevision => ((App)Application.Current).ThemeService.Revision;
-    public IReadOnlyList<ThemeMode> ThemeModes { get; } = Enum.GetValues<ThemeMode>();
+    public IReadOnlyList<ThemeMode> ThemeModes { get; } =
+    [
+        ThemeMode.Dark,
+        ThemeMode.Light
+    ];
     public IReadOnlyList<AppLanguage> Languages { get; } = Enum.GetValues<AppLanguage>();
     public IReadOnlyList<IconVisualMode> IconVisualModes { get; } = Enum.GetValues<IconVisualMode>();
     public IReadOnlyList<DockPlacement> FixedPlacements { get; } =

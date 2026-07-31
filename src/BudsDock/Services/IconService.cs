@@ -5,7 +5,6 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Microsoft.Win32;
 using BudsDock.Models;
 
 namespace BudsDock.Services;
@@ -28,6 +27,11 @@ public sealed class IconService
         var key = CreateCacheKey(item);
         return _glowColorCache.GetOrAdd(key, _ =>
         {
+            if (item.Id.StartsWith("builtin-", StringComparison.Ordinal))
+            {
+                return GetBuiltInGlowColor(item.Id);
+            }
+
             var fallback = Application.Current?.TryFindResource("GlowColor") is Color color
                 ? color
                 : Color.FromRgb(112, 142, 255);
@@ -143,19 +147,9 @@ public sealed class IconService
             }
         }
 
-        if (item.Id == "builtin-edge" && item.VisualMode != IconVisualMode.Monochrome)
-        {
-            var edge = ResolveEdgePath();
-            var edgeIcon = edge is null ? null : ExtractAssociatedIcon(edge);
-            if (edgeIcon is not null)
-            {
-                return edgeIcon;
-            }
-        }
-
         if (item.Id.StartsWith("builtin-", StringComparison.Ordinal))
         {
-            return CreateBuiltInIcon(item.Id, item.VisualMode == IconVisualMode.Monochrome);
+            return CreateBuiltInIcon(item.Id, item.VisualMode != IconVisualMode.Original);
         }
 
         var target = ResolveExecutablePath(item.TargetPath);
@@ -216,39 +210,6 @@ public sealed class IconService
         return File.Exists(systemCandidate) ? systemCandidate : target;
     }
 
-    private static string? ResolveEdgePath()
-    {
-        var registryLocations = new[]
-        {
-            (Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"),
-            (Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"),
-            (Registry.LocalMachine, @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe")
-        };
-
-        foreach (var (root, subKey) in registryLocations)
-        {
-            try
-            {
-                using var key = root.OpenSubKey(subKey);
-                if (key?.GetValue(null) is string value && File.Exists(value))
-                {
-                    return value;
-                }
-            }
-            catch
-            {
-                // Fall through to conventional paths.
-            }
-        }
-
-        var candidates = new[]
-        {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft", "Edge", "Application", "msedge.exe"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft", "Edge", "Application", "msedge.exe")
-        };
-        return candidates.FirstOrDefault(File.Exists);
-    }
-
     private static ImageSource CreateBuiltInIcon(string id, bool glyphOnly)
     {
         var glyph = id switch
@@ -260,48 +221,105 @@ public sealed class IconService
             "builtin-edge" => "\uE774",
             _ => "\uE8B7"
         };
-        var background = GetBuiltInBackground(id);
-
-        var foreground = (Application.Current?.TryFindResource("IconForegroundBrush") as SolidColorBrush)?.Color ?? Colors.White;
-        var typeface = new Typeface(new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol, Microsoft YaHei UI, Arial"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
-        const double size = 96;
-        var visual = new DrawingVisual();
-        using (var drawing = visual.RenderOpen())
+        var (gradientStart, gradientEnd) = GetBuiltInPalette(id);
+        var foreground = Colors.White;
+        var typeface = new Typeface(
+            new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol"),
+            FontStyles.Normal,
+            FontWeights.SemiBold,
+            FontStretches.Normal);
+        const double size = 256;
+        var group = new DrawingGroup();
+        using (var drawing = group.Open())
         {
             if (!glyphOnly)
             {
-                drawing.DrawRoundedRectangle(new SolidColorBrush(background), null, new Rect(3, 3, 90, 90), 18, 18);
+                var surface = new LinearGradientBrush(
+                    gradientStart,
+                    gradientEnd,
+                    new Point(0.18, 0),
+                    new Point(0.82, 1));
+                var border = new Pen(new SolidColorBrush(Color.FromArgb(82, 255, 255, 255)), 2.2);
+                drawing.DrawRoundedRectangle(surface, border, new Rect(7, 7, 242, 242), 54, 54);
+
+                var sheen = new LinearGradientBrush(
+                    Color.FromArgb(54, 255, 255, 255),
+                    Color.FromArgb(0, 255, 255, 255),
+                    new Point(0, 0),
+                    new Point(0, 1));
+                drawing.PushClip(new RectangleGeometry(new Rect(8, 8, 240, 112), 53, 53));
+                drawing.DrawRectangle(sheen, null, new Rect(8, 8, 240, 112));
+                drawing.Pop();
             }
+
             var text = new FormattedText(
                 glyph,
                 CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 typeface,
-                46,
+                glyphOnly ? 142 : 118,
                 new SolidColorBrush(foreground),
                 1.0);
-            drawing.DrawText(text, new Point((size - text.Width) / 2, (size - text.Height) / 2));
+            var origin = new Point(
+                (size - text.WidthIncludingTrailingWhitespace) / 2,
+                (size - text.Height) / 2);
+            if (!glyphOnly)
+            {
+                var shadowText = new FormattedText(
+                    glyph,
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    typeface,
+                    118,
+                    new SolidColorBrush(Color.FromArgb(70, 0, 0, 0)),
+                    1.0);
+                drawing.DrawText(shadowText, new Point(origin.X, origin.Y + 5));
+            }
+            drawing.DrawText(text, origin);
         }
 
-        var bitmap = new RenderTargetBitmap((int)size, (int)size, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(visual);
-        bitmap.Freeze();
-        return bitmap;
+        group.Freeze();
+        var image = new DrawingImage(group);
+        image.Freeze();
+        return image;
     }
 
-    private static Color GetBuiltInBackground(string id)
+    private static (Color Start, Color End) GetBuiltInPalette(string id)
     {
         var isDark = ((App)Application.Current).ThemeService.IsDark;
         return id switch
         {
-            "builtin-this-pc" => isDark ? Color.FromRgb(54, 91, 178) : Color.FromRgb(86, 132, 255),
-            "builtin-control-panel" => isDark ? Color.FromRgb(112, 78, 184) : Color.FromRgb(164, 118, 255),
-            "builtin-file-explorer" => isDark ? Color.FromRgb(177, 116, 36) : Color.FromRgb(242, 177, 74),
-            "builtin-recycle-bin" => isDark ? Color.FromRgb(36, 126, 97) : Color.FromRgb(68, 184, 145),
-            "builtin-edge" => isDark ? Color.FromRgb(42, 114, 166) : Color.FromRgb(60, 162, 225),
-            _ => isDark ? Color.FromRgb(86, 105, 190) : Color.FromRgb(126, 153, 255)
+            "builtin-this-pc" => isDark
+                ? (Color.FromRgb(70, 111, 220), Color.FromRgb(38, 67, 151))
+                : (Color.FromRgb(103, 148, 255), Color.FromRgb(54, 91, 201)),
+            "builtin-control-panel" => isDark
+                ? (Color.FromRgb(146, 98, 220), Color.FromRgb(86, 55, 154))
+                : (Color.FromRgb(178, 126, 255), Color.FromRgb(116, 73, 193)),
+            "builtin-file-explorer" => isDark
+                ? (Color.FromRgb(226, 160, 57), Color.FromRgb(154, 91, 25))
+                : (Color.FromRgb(255, 194, 76), Color.FromRgb(214, 126, 29)),
+            "builtin-recycle-bin" => isDark
+                ? (Color.FromRgb(58, 169, 126), Color.FromRgb(24, 105, 79))
+                : (Color.FromRgb(85, 199, 155), Color.FromRgb(35, 137, 100)),
+            "builtin-edge" => isDark
+                ? (Color.FromRgb(47, 176, 205), Color.FromRgb(35, 97, 189))
+                : (Color.FromRgb(65, 201, 221), Color.FromRgb(43, 119, 215)),
+            _ => isDark
+                ? (Color.FromRgb(104, 128, 225), Color.FromRgb(59, 75, 158))
+                : (Color.FromRgb(132, 159, 255), Color.FromRgb(74, 100, 202))
         };
     }
+
+    private static Color GetBuiltInGlowColor(string id)
+        => id switch
+        {
+            "builtin-this-pc" => Color.FromRgb(105, 146, 255),
+            "builtin-control-panel" => Color.FromRgb(184, 126, 255),
+            "builtin-file-explorer" => Color.FromRgb(255, 184, 72),
+            "builtin-recycle-bin" => Color.FromRgb(77, 205, 155),
+            "builtin-edge" => Color.FromRgb(61, 189, 229),
+            _ => Color.FromRgb(124, 156, 255)
+        };
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr SHGetFileInfo(string path, uint fileAttributes, out ShellFileInfo fileInfo, uint fileInfoSize, uint flags);

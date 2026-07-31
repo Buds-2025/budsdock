@@ -82,7 +82,12 @@ public partial class DockWindow : Window
             var child = VisualTreeHelper.GetChildrenCount(presenter) > 0
                 ? VisualTreeHelper.GetChild(presenter, 0) as FrameworkElement
                 : null;
-            var scale = child?.LayoutTransform is ScaleTransform transform ? transform.ScaleX : 1d;
+            var scale = child?.RenderTransform switch
+            {
+                ScaleTransform transform => transform.ScaleX,
+                TransformGroup group => group.Children.OfType<ScaleTransform>().LastOrDefault()?.ScaleX ?? 1d,
+                _ => 1d
+            };
             rows.Add($"Item{index}=Container:{presenter.ActualWidth:F2}x{presenter.ActualHeight:F2};Scale:{scale:F3}");
         }
         return string.Join(Environment.NewLine, rows);
@@ -386,6 +391,11 @@ public partial class DockWindow : Window
                     ApplyPlacement(_viewModel.Settings.Placement);
                 }
                 if (e.PropertyName == nameof(AppSettings.IconSize))
+                {
+                    _hoverRevision++;
+                    UpdateHoverFromMouse();
+                }
+                else if (e.PropertyName == nameof(AppSettings.Orientation))
                 {
                     _hoverRevision++;
                     UpdateHoverFromMouse();

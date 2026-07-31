@@ -22,6 +22,7 @@ var tests = new (string Name, Action Run)[]
     ("Screen-center placement is exact", TestScreenCenter),
     ("Chinese and English resources have matching keys", TestLocalizationResourceParity),
     ("Theme tokens preserve icon contrast", TestThemeContrastTokens),
+    ("Theme selection exposes only dark and light modes", TestThemeChoices),
     ("All appearance settings and defaults are bounded", TestAllAppearanceBounds),
     ("Hover scales distinguish current and adjacent items", TestHoverScales),
     ("Icon glow color follows saturated icon pixels", TestIconGlowColor),
@@ -153,6 +154,17 @@ static void TestHoverScales()
     Equal(1.25d, DockViewModel.CalculateHoverScale(2, 2, settings, true));
     Equal(1.08d, DockViewModel.CalculateHoverScale(3, 2, settings, true));
     Equal(1.028d, DockViewModel.CalculateHoverScale(4, 2, settings, true));
+
+    var offsetSettings = new AppSettings
+    {
+        IconSize = 54,
+        IconSpacing = 12,
+        HoverScale = 1.50,
+        AdjacentHoverScale = 1.16
+    };
+    Equal(-5.82d, Math.Round(DockViewModel.CalculateHoverOffset(1, 2, offsetSettings, true), 3));
+    Equal(5.82d, Math.Round(DockViewModel.CalculateHoverOffset(3, 2, offsetSettings, true), 3));
+    Equal(2.037d, Math.Round(DockViewModel.CalculateHoverOffset(4, 2, offsetSettings, true), 3));
 }
 
 static void TestIconGlowColor()
@@ -180,7 +192,7 @@ static void TestGlowSafeMargin()
         typeof(Thickness),
         null!,
         System.Globalization.CultureInfo.InvariantCulture);
-    var worstCaseGlowExtent = 72d * 1.65d * 1.8d;
+    var worstCaseGlowExtent = 52d * 1.65d * 1.8d;
     if (margin.Left < worstCaseGlowExtent || margin.Top < worstCaseGlowExtent)
     {
         throw new InvalidOperationException(
@@ -275,7 +287,7 @@ static void TestInvalidEnumNormalization()
         File.WriteAllText(service.SettingsPath,
             """{"SchemaVersion":1,"ThemeMode":999,"Language":999,"Orientation":999,"Placement":999,"DefaultIconVisualMode":999,"Items":[]}""");
         var settings = service.LoadAsync().GetAwaiter().GetResult();
-        Equal(BudsDock.Models.ThemeMode.System, settings.ThemeMode);
+        Equal(BudsDock.Models.ThemeMode.Dark, settings.ThemeMode);
         Equal(AppLanguage.System, settings.Language);
         Equal(DockOrientation.Horizontal, settings.Orientation);
         Equal(DockPlacement.BottomCenter, settings.Placement);
@@ -492,7 +504,7 @@ static void TestSettingsXamlInvariants()
     Contains("AnimatedScaleBehavior.TargetScale", File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Views", "DockWindow.xaml")));
     Contains("DockContextMenuStyle", styles);
     Contains("IconGlowColorConverter", styles);
-    Contains("LayoutTransform", File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Behaviors", "AnimatedScaleBehavior.cs")));
+    Contains("RenderTransform", File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Behaviors", "AnimatedScaleBehavior.cs")));
     Contains("Icon.ExtractAssociatedIcon", File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Services", "TrayService.cs")));
 }
 
@@ -518,6 +530,8 @@ static void TestDockVisualInvariants()
     var settingsXaml = File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Views", "SettingsWindow.xaml"));
     var traySource = File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Services", "TrayService.cs"));
     var dockSource = File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Views", "DockWindow.xaml.cs"));
+    var iconSource = File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Services", "IconService.cs"));
+    var styles = File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Resources", "Styles.xaml"));
 
     Contains("<Binding Path=\"VisualMode\"/>", dockXaml);
     Contains("<Binding Path=\"SelectedItem.VisualMode\"/>", settingsXaml);
@@ -529,6 +543,10 @@ static void TestDockVisualInvariants()
     Contains("DispatcherOperationStatus.Pending", dockSource);
     Contains("FindNearestDockItem", dockSource);
     Contains("existing.CloneCurrentValue()", File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Behaviors", "AnimatedScaleBehavior.cs")));
+    Contains("AnimatedOpacityBehavior.TargetOpacity", dockXaml);
+    Contains("new DrawingImage(group)", iconSource);
+    Contains("MenuBackgroundBrush", styles);
+    Contains("MenuPalette.ForTheme", traySource);
 }
 
 static void TestDefaultItems()
@@ -603,6 +621,25 @@ static void TestThemeContrastTokens()
     {
         throw new InvalidOperationException("Light theme danger text does not meet 4.5:1 contrast against the alternate surface.");
     }
+    if (ContrastRatio(dark["MenuTextColor"], dark["MenuBackgroundColor"]) < 7)
+    {
+        throw new InvalidOperationException("Dark menu text does not meet 7:1 contrast against its background.");
+    }
+    if (ContrastRatio(light["MenuTextColor"], light["MenuBackgroundColor"]) < 7)
+    {
+        throw new InvalidOperationException("Light menu text does not meet 7:1 contrast against its background.");
+    }
+}
+
+static void TestThemeChoices()
+{
+    var root = FindRepositoryRoot();
+    var source = File.ReadAllText(Path.Combine(root, "src", "BudsDock", "ViewModels", "SettingsViewModel.cs"));
+    var themeService = File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Services", "ThemeService.cs"));
+    Contains("ThemeMode.Dark", source);
+    Contains("ThemeMode.Light", source);
+    DoesNotContain("Enum.GetValues<ThemeMode>()", source);
+    DoesNotContain("SystemUsesLightTheme", themeService);
 }
 
 static Dictionary<string, Rgba> ReadThemeColors(string path)

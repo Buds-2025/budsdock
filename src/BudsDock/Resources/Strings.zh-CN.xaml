@@ -51,7 +51,7 @@
   <sys:String x:Key="Appearance.Subtitle">调整主题、图标布局与Dock动效。</sys:String>
   <sys:String x:Key="Appearance.Theme">界面主题</sys:String>
   <sys:String x:Key="Appearance.Dimensions">尺寸与布局</sys:String>
-  <sys:String x:Key="Appearance.ThemeHelp">可跟随Windows深浅模式，也可手动覆盖。</sys:String>
+  <sys:String x:Key="Appearance.ThemeHelp">选择深色或浅色外观，Dock、菜单和设置面板会同步切换。</sys:String>
   <sys:String x:Key="Appearance.DefaultIconStyle">新图标默认外观</sys:String>
   <sys:String x:Key="Appearance.DefaultIconStyleHelp">只影响此后添加的程序，现有图标保持原设置。</sys:String>
   <sys:String x:Key="Appearance.Opacity">背景透明度</sys:String>
@@ -94,7 +94,6 @@
   <sys:String x:Key="System.HotkeyAvailable">恢复快捷键可用，也可通过系统托盘恢复交互。</sys:String>
   <sys:String x:Key="System.Portable">配置和导入图标保存在LocalAppData，不随程序目录迁移。</sys:String>
 
-  <sys:String x:Key="Theme.System">跟随Windows</sys:String>
   <sys:String x:Key="Theme.Dark">深色</sys:String>
   <sys:String x:Key="Theme.Light">浅色</sys:String>
   <sys:String x:Key="Language.System">跟随Windows</sys:String>

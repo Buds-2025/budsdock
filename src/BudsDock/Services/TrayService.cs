@@ -12,15 +12,17 @@ public sealed class TrayService : IDisposable
     private readonly NotifyIcon _notifyIcon;
     private readonly Icon _trayIcon;
     private readonly LocalizationService _localization;
+    private readonly ThemeService _themeService;
     private readonly AppSettings _settings;
     private ContextMenuStrip? _menu;
     private Font? _menuFont;
     private Font? _restoreFont;
     private bool _isInteractionEnabled = true;
 
-    public TrayService(LocalizationService localization, AppSettings settings)
+    public TrayService(LocalizationService localization, ThemeService themeService, AppSettings settings)
     {
         _localization = localization;
+        _themeService = themeService;
         _settings = settings;
         _trayIcon = LoadIcon();
         _notifyIcon = new NotifyIcon
@@ -46,18 +48,19 @@ public sealed class TrayService : IDisposable
 
     public void RebuildMenu()
     {
+        var palette = MenuPalette.ForTheme(_themeService.IsDark);
         _notifyIcon.Text = _localization.Translate("App.Name");
         var menuFont = new Font("Segoe UI", 9.25f);
         var restoreFont = new Font("Segoe UI", 9f, System.Drawing.FontStyle.Bold);
         var menu = new ContextMenuStrip
         {
-            BackColor = DarkMenuColorTable.Background,
-            ForeColor = DarkMenuColorTable.Text,
+            BackColor = palette.Background,
+            ForeColor = palette.Text,
             Font = menuFont,
             Padding = new Padding(6),
             ShowImageMargin = false,
             ShowCheckMargin = true,
-            Renderer = DarkMenuRenderer.Instance
+            Renderer = new ThemedMenuRenderer(palette)
         };
         var restoreItem = new ToolStripMenuItem(_localization.Translate("Action.RestoreInteraction"), null, (_, _) => Dispatch(() => RestoreInteractionRequested?.Invoke(this, EventArgs.Empty)))
         {
@@ -85,7 +88,7 @@ public sealed class TrayService : IDisposable
         menu.Items.Add(clickThrough);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_localization.Translate("Action.Exit"), null, (_, _) => Dispatch(() => ExitRequested?.Invoke(this, EventArgs.Empty)));
-        ConfigureDropDown(menu);
+        ConfigureDropDown(menu, palette);
 
         var previousMenu = _menu;
         var previousMenuFont = _menuFont;
@@ -177,11 +180,11 @@ public sealed class TrayService : IDisposable
         return (Icon)SystemIcons.Application.Clone();
     }
 
-    private static void ConfigureDropDown(ToolStripDropDown dropDown)
+    private static void ConfigureDropDown(ToolStripDropDown dropDown, MenuPalette palette)
     {
-        dropDown.BackColor = DarkMenuColorTable.Background;
-        dropDown.ForeColor = DarkMenuColorTable.Text;
-        dropDown.Renderer = DarkMenuRenderer.Instance;
+        dropDown.BackColor = palette.Background;
+        dropDown.ForeColor = palette.Text;
+        dropDown.Renderer = new ThemedMenuRenderer(palette);
         if (dropDown is ToolStripDropDownMenu menu)
         {
             menu.ShowImageMargin = false;
@@ -191,11 +194,11 @@ public sealed class TrayService : IDisposable
         dropDown.SizeChanged += (_, _) => ApplyRoundedRegion(dropDown);
         foreach (ToolStripItem item in dropDown.Items)
         {
-            item.BackColor = DarkMenuColorTable.Background;
-            item.ForeColor = item.Enabled ? DarkMenuColorTable.Text : DarkMenuColorTable.DisabledText;
+            item.BackColor = palette.Background;
+            item.ForeColor = item.Enabled ? palette.Text : palette.DisabledText;
             if (item is ToolStripMenuItem menuItem && menuItem.HasDropDownItems)
             {
-                ConfigureDropDown(menuItem.DropDown);
+                ConfigureDropDown(menuItem.DropDown, palette);
             }
         }
     }
@@ -207,7 +210,7 @@ public sealed class TrayService : IDisposable
             return;
         }
 
-        using var path = DarkMenuRenderer.CreateRoundedRectangle(
+        using var path = ThemedMenuRenderer.CreateRoundedRectangle(
             new Rectangle(0, 0, dropDown.Width, dropDown.Height),
             ScaleRadius(dropDown.DeviceDpi));
         var previous = dropDown.Region;
@@ -218,30 +221,31 @@ public sealed class TrayService : IDisposable
     private static int ScaleRadius(int deviceDpi)
         => Math.Max(8, (int)Math.Round(10 * Math.Max(96, deviceDpi) / 96d));
 
-    private sealed class DarkMenuRenderer : ToolStripProfessionalRenderer
+    private sealed class ThemedMenuRenderer : ToolStripProfessionalRenderer
     {
-        public static DarkMenuRenderer Instance { get; } = new();
+        private readonly MenuPalette _palette;
 
-        private DarkMenuRenderer() : base(new DarkMenuColorTable())
+        public ThemedMenuRenderer(MenuPalette palette) : base(new ThemedMenuColorTable(palette))
         {
+            _palette = palette;
             RoundedEdges = true;
         }
 
         protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
         {
-            e.TextColor = e.Item.Enabled ? DarkMenuColorTable.Text : DarkMenuColorTable.DisabledText;
+            e.TextColor = e.Item.Enabled ? _palette.Text : _palette.DisabledText;
             base.OnRenderItemText(e);
         }
 
         protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
         {
-            e.ArrowColor = e.Item?.Enabled != false ? DarkMenuColorTable.Text : DarkMenuColorTable.DisabledText;
+            e.ArrowColor = e.Item?.Enabled != false ? _palette.Text : _palette.DisabledText;
             base.OnRenderArrow(e);
         }
 
         protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
         {
-            using var pen = new Pen(DarkMenuColorTable.Border);
+            using var pen = new Pen(_palette.Border);
             using var path = CreateRoundedRectangle(
                 new Rectangle(0, 0, e.ToolStrip.Width - 1, e.ToolStrip.Height - 1),
                 ScaleRadius(e.ToolStrip.DeviceDpi));
@@ -262,30 +266,46 @@ public sealed class TrayService : IDisposable
         }
     }
 
-    private sealed class DarkMenuColorTable : ProfessionalColorTable
+    private sealed class ThemedMenuColorTable : ProfessionalColorTable
     {
-        public static Color Background { get; } = Color.FromArgb(13, 15, 20);
-        public static Color SurfaceHover { get; } = Color.FromArgb(36, 42, 52);
-        public static Color Border { get; } = Color.FromArgb(52, 58, 69);
-        public static Color Text { get; } = Color.FromArgb(247, 248, 251);
-        public static Color DisabledText { get; } = Color.FromArgb(116, 125, 140);
+        private readonly MenuPalette _palette;
 
-        public override Color ToolStripDropDownBackground => Background;
-        public override Color ImageMarginGradientBegin => Background;
-        public override Color ImageMarginGradientMiddle => Background;
-        public override Color ImageMarginGradientEnd => Background;
-        public override Color MenuBorder => Border;
-        public override Color MenuItemBorder => SurfaceHover;
-        public override Color MenuItemSelected => SurfaceHover;
-        public override Color MenuItemSelectedGradientBegin => SurfaceHover;
-        public override Color MenuItemSelectedGradientEnd => SurfaceHover;
-        public override Color MenuItemPressedGradientBegin => SurfaceHover;
-        public override Color MenuItemPressedGradientMiddle => SurfaceHover;
-        public override Color MenuItemPressedGradientEnd => SurfaceHover;
-        public override Color SeparatorDark => Border;
-        public override Color SeparatorLight => Border;
-        public override Color CheckBackground => SurfaceHover;
-        public override Color CheckSelectedBackground => SurfaceHover;
-        public override Color CheckPressedBackground => SurfaceHover;
+        public ThemedMenuColorTable(MenuPalette palette) => _palette = palette;
+
+        public override Color ToolStripDropDownBackground => _palette.Background;
+        public override Color ImageMarginGradientBegin => _palette.Background;
+        public override Color ImageMarginGradientMiddle => _palette.Background;
+        public override Color ImageMarginGradientEnd => _palette.Background;
+        public override Color MenuBorder => _palette.Border;
+        public override Color MenuItemBorder => _palette.Hover;
+        public override Color MenuItemSelected => _palette.Hover;
+        public override Color MenuItemSelectedGradientBegin => _palette.Hover;
+        public override Color MenuItemSelectedGradientEnd => _palette.Hover;
+        public override Color MenuItemPressedGradientBegin => _palette.Hover;
+        public override Color MenuItemPressedGradientMiddle => _palette.Hover;
+        public override Color MenuItemPressedGradientEnd => _palette.Hover;
+        public override Color SeparatorDark => _palette.Border;
+        public override Color SeparatorLight => _palette.Border;
+        public override Color CheckBackground => _palette.Hover;
+        public override Color CheckSelectedBackground => _palette.Hover;
+        public override Color CheckPressedBackground => _palette.Hover;
+    }
+
+    private sealed record MenuPalette(Color Background, Color Hover, Color Border, Color Text, Color DisabledText)
+    {
+        public static MenuPalette ForTheme(bool isDark)
+            => isDark
+                ? new MenuPalette(
+                    Color.FromArgb(17, 21, 27),
+                    Color.FromArgb(40, 50, 65),
+                    Color.FromArgb(58, 67, 81),
+                    Color.FromArgb(245, 247, 251),
+                    Color.FromArgb(134, 147, 168))
+                : new MenuPalette(
+                    Color.FromArgb(255, 255, 255),
+                    Color.FromArgb(228, 235, 245),
+                    Color.FromArgb(216, 224, 235),
+                    Color.FromArgb(23, 32, 51),
+                    Color.FromArgb(113, 128, 150));
     }
 }

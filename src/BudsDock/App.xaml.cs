@@ -217,7 +217,7 @@ public partial class App : Application
     private void CreateTray(AppSettings settings)
     {
         _trayService?.Dispose();
-        _trayService = new TrayService(LocalizationService, settings);
+        _trayService = new TrayService(LocalizationService, ThemeService, settings);
         _trayService.OpenSettingsRequested += (_, _) => OpenSettings();
         _trayService.RestoreInteractionRequested += (_, _) => _dockWindow?.RestoreInteraction();
         _trayService.ExitRequested += async (_, _) => await ExitApplicationAsync();
@@ -250,6 +250,7 @@ public partial class App : Application
             case nameof(AppSettings.ThemeMode):
                 ThemeService.Apply(settings.ThemeMode);
                 IconService.ClearCache();
+                _trayService?.RebuildMenu();
                 break;
             case nameof(AppSettings.Language):
                 LocalizationService.Apply(settings.Language);
@@ -309,11 +310,6 @@ public partial class App : Application
     {
         Dispatcher.Invoke(() =>
         {
-            if (SettingsService.Settings.ThemeMode == BudsDock.Models.ThemeMode.System)
-            {
-                ThemeService.Apply(BudsDock.Models.ThemeMode.System);
-                IconService.ClearCache();
-            }
             RefreshFixedPlacement();
         });
     }

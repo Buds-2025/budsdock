@@ -1,24 +1,29 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <Color x:Key="WindowBackgroundColor">#101216</Color>
-  <Color x:Key="ContentColor">#101216</Color>
-  <Color x:Key="HeaderColor">#15181E</Color>
-  <Color x:Key="SidebarColor">#171A20</Color>
-  <Color x:Key="SurfaceColor">#1B2028</Color>
-  <Color x:Key="SurfaceAltColor">#20252E</Color>
-  <Color x:Key="SurfaceHoverColor">#222933</Color>
-  <Color x:Key="DockSurfaceColor">#222631</Color>
-  <Color x:Key="BorderColor">#2B313C</Color>
+  <Color x:Key="WindowBackgroundColor">#0B0E13</Color>
+  <Color x:Key="ContentColor">#0B0E13</Color>
+  <Color x:Key="HeaderColor">#11151B</Color>
+  <Color x:Key="SidebarColor">#131820</Color>
+  <Color x:Key="SurfaceColor">#181E27</Color>
+  <Color x:Key="SurfaceAltColor">#202733</Color>
+  <Color x:Key="SurfaceHoverColor">#283241</Color>
+  <Color x:Key="DockSurfaceColor">#151B24</Color>
+  <Color x:Key="BorderColor">#303947</Color>
   <Color x:Key="BorderStrongColor">#3A4351</Color>
-  <Color x:Key="TextPrimaryColor">#F5F7FB</Color>
-  <Color x:Key="TextSecondaryColor">#A2ACBB</Color>
-  <Color x:Key="TextTertiaryColor">#8693A8</Color>
-  <Color x:Key="AccentColor">#5B8CFF</Color>
-  <Color x:Key="AccentSoftColor">#1F355F</Color>
+  <Color x:Key="TextPrimaryColor">#F4F7FB</Color>
+  <Color x:Key="TextSecondaryColor">#AAB4C3</Color>
+  <Color x:Key="TextTertiaryColor">#8390A3</Color>
+  <Color x:Key="AccentColor">#7C9CFF</Color>
+  <Color x:Key="AccentSoftColor">#1D315E</Color>
   <Color x:Key="DangerColor">#FF8C94</Color>
   <Color x:Key="IconTileColor">#3C46566E</Color>
   <Color x:Key="IconForegroundColor">#F1F3FA</Color>
-  <Color x:Key="GlowColor">#A9B9FF</Color>
+  <Color x:Key="GlowColor">#8FACFF</Color>
+  <Color x:Key="MenuBackgroundColor">#11151B</Color>
+  <Color x:Key="MenuHoverColor">#283241</Color>
+  <Color x:Key="MenuBorderColor">#3A4351</Color>
+  <Color x:Key="MenuTextColor">#F5F7FB</Color>
+  <Color x:Key="MenuDisabledTextColor">#8693A8</Color>
 
   <SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
   <SolidColorBrush x:Key="ContentBrush" Color="{StaticResource ContentColor}"/>
@@ -39,6 +44,11 @@
   <SolidColorBrush x:Key="IconTileBrush" Color="{StaticResource IconTileColor}"/>
   <SolidColorBrush x:Key="IconForegroundBrush" Color="{StaticResource IconForegroundColor}"/>
   <SolidColorBrush x:Key="GlowBrush" Color="{StaticResource GlowColor}"/>
+  <SolidColorBrush x:Key="MenuBackgroundBrush" Color="{StaticResource MenuBackgroundColor}"/>
+  <SolidColorBrush x:Key="MenuHoverBrush" Color="{StaticResource MenuHoverColor}"/>
+  <SolidColorBrush x:Key="MenuBorderBrush" Color="{StaticResource MenuBorderColor}"/>
+  <SolidColorBrush x:Key="MenuTextBrush" Color="{StaticResource MenuTextColor}"/>
+  <SolidColorBrush x:Key="MenuDisabledTextBrush" Color="{StaticResource MenuDisabledTextColor}"/>
 
   <BitmapImage x:Key="BrandMarkSource" UriSource="pack://application:,,,/Assets/BudsDock-mark-dark.png"/>
 </ResourceDictionary>

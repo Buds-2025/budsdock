@@ -17,6 +17,8 @@ public sealed class DockItem : ObservableObject
     private bool _runAsAdministrator;
     private bool _isBuiltIn;
     private double _hoverScale = 1.0;
+    private double _hoverOffsetX;
+    private double _hoverOffsetY;
     private bool _isHovered;
 
     public string Id { get => _id; set => SetProperty(ref _id, value); }
@@ -34,6 +36,12 @@ public sealed class DockItem : ObservableObject
 
     [System.Text.Json.Serialization.JsonIgnore]
     public double HoverScale { get => _hoverScale; set => SetProperty(ref _hoverScale, value); }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public double HoverOffsetX { get => _hoverOffsetX; set => SetProperty(ref _hoverOffsetX, value); }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public double HoverOffsetY { get => _hoverOffsetY; set => SetProperty(ref _hoverOffsetY, value); }
 
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsHovered { get => _isHovered; set => SetProperty(ref _isHovered, value); }

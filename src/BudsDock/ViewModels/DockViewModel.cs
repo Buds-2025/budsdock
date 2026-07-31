@@ -118,6 +118,9 @@ public sealed class DockViewModel : ObservableObject
             var item = Items[index];
             item.IsHovered = visualHoverEnabled && index == hoveredIndex;
             item.HoverScale = CalculateHoverScale(index, hoveredIndex, Settings, visualHoverEnabled);
+            var hoverOffset = CalculateHoverOffset(index, hoveredIndex, Settings, visualHoverEnabled);
+            item.HoverOffsetX = Settings.Orientation == DockOrientation.Horizontal ? hoverOffset : 0d;
+            item.HoverOffsetY = Settings.Orientation == DockOrientation.Vertical ? hoverOffset : 0d;
         }
     }
 
@@ -150,6 +153,31 @@ public sealed class DockViewModel : ObservableObject
         }
 
         return 1.0;
+    }
+
+    public static double CalculateHoverOffset(
+        int itemIndex,
+        int hoveredIndex,
+        AppSettings settings,
+        bool visualHoverEnabled)
+    {
+        if (!visualHoverEnabled || hoveredIndex < 0 || itemIndex == hoveredIndex)
+        {
+            return 0d;
+        }
+
+        var distance = Math.Abs(itemIndex - hoveredIndex);
+        if (distance > 2)
+        {
+            return 0d;
+        }
+
+        var requiredPush = Math.Max(
+            0d,
+            (settings.IconSize * ((settings.HoverScale + settings.AdjacentHoverScale) / 2d - 1d))
+            - settings.IconSpacing);
+        var attenuation = distance == 1 ? 1d : 0.35d;
+        return Math.Sign(itemIndex - hoveredIndex) * requiredPush * attenuation;
     }
 
     /// <summary>
