@@ -4,7 +4,7 @@ BudsDock是一款面向Windows 11 x64的桌面快捷启动栏，使用WPF与.NET
 
 ## 运行
 
-在`outputs`目录选择一个发行包，解压后运行`BudsDock.exe`。
+从[GitHub Release](https://github.com/Buds-2025/budsdock/releases/latest)下载发行包，解压后运行`BudsDock.exe`。本地打包产物位于`outputs`目录。
 
 | 版本 | 压缩包 | 运行要求 |
 | --- | --- | --- |
@@ -23,7 +23,7 @@ BudsDock是一款面向Windows 11 x64的桌面快捷启动栏，使用WPF与.NET
 
 外部图标使用两个后台解码槽，图片最长边限制为256像素，图像缓存限制为256项。Shell图标优先请求256像素版本，失败后回退到关联图标。异步加载完成后同时更新Dock、列表和详情预览。设置窗口在首次打开时创建；关闭全屏避让时停止轮询，开启时每1.5秒检查一次。
 
-发布目标调整为`net10.0-windows`，移除未使用的Windows SDK与WinRT投影程序集；Portable仅携带中英文卫星资源。没有对WPF程序集进行不受支持的裁剪，也未加入第三方NuGet包。完整版压缩包比项目内1.0.0发行包减少约15.7％。
+发布目标调整为`net10.0-windows`，移除未使用的Windows SDK与WinRT投影程序集；Portable仅携带中英文卫星资源。没有对WPF程序集进行不受支持的裁剪，也未加入第三方NuGet包。完整版压缩包比1.0.0发行包减少约15.7％。
 
 ![新版悬停效果](docs/screenshots/1.0.1/dock-hover-dark.png)
 
@@ -60,7 +60,7 @@ python .\scripts\package_release.py --variant compact
 
 45项自动化测试覆盖定位、外观参数、配置迁移与恢复、并发保存、目录分类、缓存刷新、图片解码、资源一致性等。发布验证脚本对两种发行包分别执行960×680深色中文与640×480浅色英文检查，并执行真实WPF环境中的搜索隔离、图标排序、300个并发图标加载和缓存上限验证。截图、日志、测试数据均存入项目`artifacts`目录，不自动批量清理。
 
-审查结论、测量口径和验证边界见[升级验收报告](docs/UPGRADE-1.0.1.md)。旧版设计与审查文档作为历史记录保留，不代表1.0.1功能现状。
+审查结论、测量口径和验证边界见[升级验收报告](docs/UPGRADE-1.0.1.md)。旧版设计与审查文档可通过Git历史查阅。
 
 ## English
 
