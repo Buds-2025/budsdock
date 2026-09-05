@@ -16,15 +16,73 @@ public sealed class IconService
     private readonly ConcurrentDictionary<string, ImageSource> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, Color> _glowColorCache = new(StringComparer.OrdinalIgnoreCase);
 
+    private readonly ConcurrentDictionary<string, byte> _pending = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Queue<string> _cacheOrder = new();
+    private int _generation;
+    public int CachedImageCount => _cache.Count;
+    private readonly SemaphoreSlim _decodeGate = new(2, 2);
+    public const int MaximumDecodePixels = 256;
+
     public ImageSource GetImage(DockItem item)
     {
         var key = CreateCacheKey(item);
-        return _cache.GetOrAdd(key, _ => LoadImage(item));
+        if (_cache.TryGetValue(key, out var cached)) return cached;
+        if (string.IsNullOrWhiteSpace(item.CustomIconPath) && item.Id.StartsWith("builtin-", StringComparison.Ordinal))
+            return CacheImage(key, LoadImage(item));
+        var fallback = item.Id.StartsWith("builtin-", StringComparison.Ordinal)
+            ? CreateBuiltInIcon(item.Id, false)
+            : (_cache.TryGetValue("fallback", out var generic) ? generic : CacheImage("fallback", CreateBuiltInIcon("builtin-generic", false)));
+        if (_pending.TryAdd(key, 0)) _ = LoadImageAsync(item, key, fallback);
+        return fallback;
+    }
+
+    private ImageSource CacheImage(string key, ImageSource image)
+    {
+        if (!_cache.ContainsKey(key))
+        {
+            while (_cache.Count >= 256 && _cacheOrder.TryDequeue(out var oldest))
+            {
+                _cache.TryRemove(oldest, out _);
+                _glowColorCache.TryRemove(oldest, out _);
+            }
+            _cacheOrder.Enqueue(key);
+        }
+        _cache[key] = image;
+        return image;
+    }
+
+    private async Task LoadImageAsync(DockItem item, string key, ImageSource fallback)
+    {
+        var generation = _generation;
+        var customPath = item.CustomIconPath;
+        var targetPath = item.TargetPath;
+        var dispatcher = Application.Current.Dispatcher;
+        await _decodeGate.WaitAsync();
+        ImageSource image = fallback;
+        try
+        {
+            image = await Task.Run(() =>
+                (!string.IsNullOrWhiteSpace(customPath) ? DecodeBitmap(customPath) : null)
+                ?? (item.Id.StartsWith("builtin-", StringComparison.Ordinal) ? null
+                    : ExtractAssociatedIcon(ResolveExecutablePath(targetPath)))) ?? fallback;
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex.Message); }
+        finally { _decodeGate.Release(); }
+        if (dispatcher.HasShutdownStarted) { _pending.TryRemove(key, out _); return; }
+        await dispatcher.InvokeAsync(() =>
+        {
+            _pending.TryRemove(key, out _);
+            if (!StringComparer.OrdinalIgnoreCase.Equals(key, CreateCacheKey(item))) return;
+            if (generation == _generation) CacheImage(key, image);
+            _glowColorCache.TryRemove(key, out _);
+            item.IconRevision++;
+        });
     }
 
     public Color GetGlowColor(DockItem item)
     {
         var key = CreateCacheKey(item);
+        if (_glowColorCache.Count >= 256) _glowColorCache.Clear();
         return _glowColorCache.GetOrAdd(key, _ =>
         {
             if (item.Id.StartsWith("builtin-", StringComparison.Ordinal))
@@ -43,7 +101,9 @@ public sealed class IconService
 
     public void ClearCache()
     {
+        _generation++;
         _cache.Clear();
+        _cacheOrder.Clear();
         _glowColorCache.Clear();
     }
 
@@ -134,13 +194,13 @@ public sealed class IconService
     }
 
     private static string CreateCacheKey(DockItem item)
-        => $"{item.Id}|{item.CustomIconPath}|{item.TargetPath}|{item.VisualMode}|{((App)Application.Current).ThemeService.Revision}";
+        => $"{item.Id}|{item.CustomIconPath}|{item.TargetPath}|{((App)Application.Current).ThemeService.Revision}";
 
     private ImageSource LoadImage(DockItem item)
     {
         if (!string.IsNullOrWhiteSpace(item.CustomIconPath) && File.Exists(item.CustomIconPath))
         {
-            var custom = LoadBitmap(item.CustomIconPath);
+            var custom = DecodeBitmap(item.CustomIconPath);
             if (custom is not null)
             {
                 return custom;
@@ -149,21 +209,27 @@ public sealed class IconService
 
         if (item.Id.StartsWith("builtin-", StringComparison.Ordinal))
         {
-            return CreateBuiltInIcon(item.Id, item.VisualMode != IconVisualMode.Original);
+            return CreateBuiltInIcon(item.Id, false);
         }
 
         var target = ResolveExecutablePath(item.TargetPath);
-        return ExtractAssociatedIcon(target) ?? CreateBuiltInIcon("builtin-generic", item.VisualMode == IconVisualMode.Monochrome);
+        return ExtractAssociatedIcon(target) ?? CreateBuiltInIcon("builtin-generic", false);
     }
 
-    private static BitmapSource? LoadBitmap(string path)
+    public static BitmapSource? DecodeBitmap(string path)
     {
         try
         {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            var frame = BitmapFrame.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
+            var landscape = frame.PixelWidth >= frame.PixelHeight;
+            stream.Position = 0;
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.UriSource = new Uri(path, UriKind.Absolute);
+            if (landscape) bitmap.DecodePixelWidth = Math.Min(MaximumDecodePixels, frame.PixelWidth);
+            else bitmap.DecodePixelHeight = Math.Min(MaximumDecodePixels, frame.PixelHeight);
+            bitmap.StreamSource = stream;
             bitmap.EndInit();
             bitmap.Freeze();
             return bitmap;
@@ -180,6 +246,9 @@ public sealed class IconService
         {
             return null;
         }
+
+        var highResolution = ShellIconService.Extract(path);
+        if (highResolution is not null) return highResolution;
 
         var result = SHGetFileInfo(path, 0, out var fileInfo, (uint)Marshal.SizeOf<ShellFileInfo>(), ShgfiIcon | ShgfiLargeIcon);
         if (result == IntPtr.Zero || fileInfo.IconHandle == IntPtr.Zero)

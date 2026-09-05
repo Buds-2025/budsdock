@@ -39,7 +39,6 @@ public partial class SettingsWindow : Window
     {
         ThemeCombo.Items.Refresh();
         LanguageCombo.Items.Refresh();
-        IconStyleCombo.Items.Refresh();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -98,6 +97,15 @@ public partial class SettingsWindow : Window
             return;
         }
 
+        if (e.Key == Key.F)
+        {
+            viewModel.SelectedPageIndex = 0;
+            viewModel.IsCompactDetailsOpen = false;
+            IconSearchBox.Focus();
+            IconSearchBox.SelectAll();
+            e.Handled = true;
+            return;
+        }
         var index = e.Key switch
         {
             Key.D1 or Key.NumPad1 => 0,

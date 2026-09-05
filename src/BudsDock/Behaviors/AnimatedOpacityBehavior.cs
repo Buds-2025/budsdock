@@ -53,15 +53,11 @@ public static class AnimatedOpacityBehavior
         {
             From = element.Opacity,
             To = target,
-            Duration = TimeSpan.FromMilliseconds(isAppearing ? 145 : 220),
+            Duration = TimeSpan.FromMilliseconds(isAppearing ? 220 : 320),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
             FillBehavior = FillBehavior.Stop
         };
-        animation.Completed += (_, _) =>
-        {
-            element.BeginAnimation(UIElement.OpacityProperty, null);
-            element.Opacity = target;
-        };
+        element.Opacity = target;
         element.BeginAnimation(UIElement.OpacityProperty, animation, HandoffBehavior.SnapshotAndReplace);
     }
 }

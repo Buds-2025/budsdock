@@ -13,11 +13,22 @@ public sealed class ThemeService : INotifyPropertyChanged
     public int Revision => _revision;
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    private static bool AppsUseLightTheme()
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("AppsUseLightTheme") is int value && value != 0;
+        }
+        catch { return false; }
+    }
+
     public void Apply(ThemeMode requestedMode)
     {
         IsDark = requestedMode switch
         {
             ThemeMode.Light => false,
+            ThemeMode.System => !AppsUseLightTheme(),
             _ => true
         };
 

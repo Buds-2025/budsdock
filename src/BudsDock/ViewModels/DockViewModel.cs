@@ -68,32 +68,11 @@ public sealed class DockViewModel : ObservableObject
     public async Task AddFilesAsync(IEnumerable<string> paths)
     {
         var added = 0;
-        foreach (var path in paths.Where(File.Exists))
+        foreach (var path in paths.Where(LaunchTargetService.IsSupported))
         {
-            var extension = Path.GetExtension(path);
-            if (!extension.Equals(".exe", StringComparison.OrdinalIgnoreCase)
-                && !extension.Equals(".lnk", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (Items.Any(item => string.Equals(item.TargetPath, path, StringComparison.OrdinalIgnoreCase)))
-            {
-                continue;
-            }
-
-            var name = Path.GetFileNameWithoutExtension(path);
-            Items.Add(new DockItem
-            {
-                Name = name,
-                NameEn = name,
-                TargetPath = path,
-                WorkingDirectory = Path.GetDirectoryName(path) ?? string.Empty,
-                Kind = extension.Equals(".lnk", StringComparison.OrdinalIgnoreCase)
-                    ? LaunchTargetKind.Shortcut
-                    : LaunchTargetKind.Executable,
-                VisualMode = Settings.DefaultIconVisualMode
-            });
+            var normalized = LaunchTargetService.NormalizePath(path);
+            if (Items.Any(item => string.Equals(item.TargetPath, normalized, StringComparison.OrdinalIgnoreCase))) continue;
+            Items.Add(LaunchTargetService.Create(normalized, Settings.DefaultIconVisualMode));
             added++;
         }
 
@@ -107,6 +86,15 @@ public sealed class DockViewModel : ObservableObject
             var localization = ((App)System.Windows.Application.Current).LocalizationService;
             NotificationRequested?.Invoke(this, localization.Translate("Message.OnlyExeLnk"));
         }
+    }
+
+    public void MoveItem(DockItem item, DockItem target)
+    {
+        var from = Items.IndexOf(item);
+        var to = Items.IndexOf(target);
+        if (from < 0 || to < 0 || from == to) return;
+        SetHover(null);
+        Items.Move(from, to);
     }
 
     public void SetHover(DockItem? hoveredItem)

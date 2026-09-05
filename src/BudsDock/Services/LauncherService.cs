@@ -21,6 +21,9 @@ public sealed class LauncherService
                 throw new FileNotFoundException("The configured application no longer exists.", item.TargetPath);
             }
 
+            if (item.Kind == LaunchTargetKind.Folder && !Directory.Exists(item.TargetPath))
+                throw new FileNotFoundException("The configured folder no longer exists.", item.TargetPath);
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = item.TargetPath,
@@ -29,7 +32,7 @@ public sealed class LauncherService
                 UseShellExecute = true,
                 Verb = item.RunAsAdministrator ? "runas" : string.Empty
             };
-            Process.Start(startInfo);
+            using var process = Process.Start(startInfo);
         }
         catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException or System.ComponentModel.Win32Exception)
         {

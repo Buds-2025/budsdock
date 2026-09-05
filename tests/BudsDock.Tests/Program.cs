@@ -22,7 +22,7 @@ var tests = new (string Name, Action Run)[]
     ("Screen-center placement is exact", TestScreenCenter),
     ("Chinese and English resources have matching keys", TestLocalizationResourceParity),
     ("Theme tokens preserve icon contrast", TestThemeContrastTokens),
-    ("Theme selection exposes only dark and light modes", TestThemeChoices),
+    ("Theme selection includes system appearance", TestThemeChoices),
     ("All appearance settings and defaults are bounded", TestAllAppearanceBounds),
     ("Hover scales distinguish current and adjacent items", TestHoverScales),
     ("Icon glow color follows saturated icon pixels", TestIconGlowColor),
@@ -43,6 +43,18 @@ var tests = new (string Name, Action Run)[]
     ("Failed imports restore the previous in-memory settings", TestImportTransactionRollback),
     ("Settings XAML contains interaction safety invariants", TestSettingsXamlInvariants),
     ("Dock and tray visual refresh invariants are present", TestDockVisualInvariants),
+    ("Presets preserve app entries and system preferences", TestPresets),
+    ("Folder targets and shortcut types are classified correctly", TestFolderTargets),
+    ("Monitor-local geometry clamps negative origins correctly", TestNegativeMonitor),
+    ("System theme and monitor-relative coordinates survive persistence", TestMonitorSettings),
+    ("NaN appearance input cannot poison WPF layout", TestFiniteSettings),
+    ("Cleared collections detach obsolete item subscriptions", TestCollectionReset),
+    ("Icon refreshes never schedule configuration writes", TestIconRefreshPersistence),
+    ("Tall and wide bitmap decoding stays bounded", TestBoundedBitmapDecode),
+    ("Null imported item fields are normalized", TestNullItemFields),
+    ("Resource dictionaries contain no duplicate implicit keys", TestUniqueResourceKeys),
+    ("Ambient lighting remains subtle and can be disabled", TestAmbientLighting),
+    ("Legacy icon styles migrate to original images", TestOriginalIconMigration),
     ("Every exit entry uses the asynchronous application exit path", TestUnifiedExitPaths)
 };
 
@@ -63,6 +75,171 @@ foreach (var (name, run) in tests)
 
 Console.WriteLine($"\n{tests.Length - failures.Count}/{tests.Length} tests passed.");
 return failures.Count == 0 ? 0 : 1;
+
+static void TestPresets()
+{
+    var settings = new AppSettings { AutoStart = false, MonitorId = "test-monitor", IsClickThrough = true };
+    var item = new DockItem { Name = "keep" };
+    settings.Items.Add(item);
+    foreach (var preset in Enum.GetValues<AppearancePreset>())
+    {
+        AppearancePresetService.Apply(settings, preset);
+        Equal(false, settings.AutoStart);
+        Equal(true, settings.IsClickThrough);
+        Equal("test-monitor", settings.MonitorId);
+        Equal(item, settings.Items.Single());
+    }
+    AppearancePresetService.Apply(settings, AppearancePreset.Minimal);
+    Equal(false, settings.ShowReflection);
+    Equal(false, settings.EnableHoverAnimation);
+    Equal(0d, settings.GlowIntensity);
+}
+
+static void TestFolderTargets()
+{
+    var folder = Path.Combine(FindRepositoryRoot(), "artifacts", "upgrade", "test-folder");
+    Directory.CreateDirectory(folder);
+    var item = LaunchTargetService.Create(folder + Path.DirectorySeparatorChar, IconVisualMode.Tile);
+    Equal(LaunchTargetKind.Folder, item.Kind);
+    Equal(folder, item.TargetPath);
+    Equal("test-folder", item.Name);
+    Equal(true, LaunchTargetService.IsSupported(folder));
+    Equal(false, LaunchTargetService.IsSupported(Path.Combine(folder, "absent.exe")));
+    var shortcut = Path.Combine(folder, "sample.lnk");
+    File.WriteAllText(shortcut, "test fixture; never launched");
+    Equal(LaunchTargetKind.Shortcut, LaunchTargetService.Create(shortcut, IconVisualMode.Original).Kind);
+}
+
+static void TestNegativeMonitor()
+{
+    var work = new Rect(-1920, -300, 1920, 1080);
+    var centered = DockPositionService.Calculate(DockPlacement.ScreenCenter, new Size(400, 80), work);
+    Equal(new Point(-1160, 200), centered);
+    Equal(new Point(-400, -300), DockPositionService.Clamp(new Point(10, -900), new Size(400, 80), work));
+    Equal(.5, DisplayService.FitScale(new Size(2000, 100), new Size(1000, 800)));
+}
+
+static void TestMonitorSettings()
+{
+    WithDataDirectory("monitor", service =>
+    {
+        service.LoadAsync().GetAwaiter().GetResult();
+        service.Settings.ThemeMode = BudsDock.Models.ThemeMode.System;
+        service.Settings.MonitorId = "external-display";
+        service.Settings.RelativeX = .25;
+        service.Settings.RelativeY = .75;
+        service.SaveAsync().GetAwaiter().GetResult();
+        var restored = new SettingsService().LoadAsync().GetAwaiter().GetResult();
+        Equal(BudsDock.Models.ThemeMode.System, restored.ThemeMode);
+        Equal("external-display", restored.MonitorId);
+        Equal(.25, restored.RelativeX);
+        Equal(.75, restored.RelativeY);
+        service.StopScheduledSave();
+    });
+}
+
+static void TestFiniteSettings()
+{
+    var settings = new AppSettings();
+    foreach (var property in typeof(AppSettings).GetProperties().Where(p => p.PropertyType == typeof(double)))
+    {
+        property.SetValue(settings, double.NaN);
+        Equal(true, double.IsFinite((double)property.GetValue(settings)!));
+    }
+}
+
+static void TestCollectionReset()
+{
+    WithDataDirectory("collection-reset", service =>
+    {
+        service.LoadAsync().GetAwaiter().GetResult();
+        var old = service.Settings.Items[0];
+        service.Settings.Items.Clear();
+        service.SaveAsync().GetAwaiter().GetResult();
+        service.StopScheduledSave();
+        old.Name = "detached";
+        Equal(SaveState.Saved, service.SaveState);
+    });
+}
+
+static void TestIconRefreshPersistence()
+{
+    WithDataDirectory("icon-refresh", service =>
+    {
+        service.LoadAsync().GetAwaiter().GetResult();
+        service.Settings.Items[0].IconRevision++;
+        Equal(SaveState.Saved, service.SaveState);
+        service.SaveAsync().GetAwaiter().GetResult();
+        DoesNotContain("IconRevision", File.ReadAllText(service.SettingsPath));
+    });
+}
+
+static void TestBoundedBitmapDecode()
+{
+    var directory = Path.Combine(FindRepositoryRoot(), "artifacts", "upgrade", "decode-tests");
+    Directory.CreateDirectory(directory);
+    foreach (var (width, height) in new[] { (2048, 16), (16, 2048), (64, 64) })
+    {
+        var bitmap = System.Windows.Media.Imaging.BitmapSource.Create(width, height, 96, 96,
+            PixelFormats.Bgra32, null, new byte[width * height * 4], width * 4);
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+        var path = Path.Combine(directory, $"{width}x{height}.png");
+        using (var output = File.Create(path)) encoder.Save(output);
+        var decoded = IconService.DecodeBitmap(path) ?? throw new Exception("Decode failed");
+        Equal(true, decoded.IsFrozen);
+        Equal(true, Math.Max(decoded.PixelWidth, decoded.PixelHeight) <= 256);
+        using var exclusive = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+    }
+}
+
+static void TestNullItemFields()
+{
+    WithDataDirectory("null-fields", service =>
+    {
+        File.WriteAllText(service.SettingsPath, """{"SchemaVersion":2,"Items":[{"Id":null,"Name":null,"NameEn":null,"TargetPath":null}]}""");
+        var item = service.LoadAsync().GetAwaiter().GetResult().Items.Single();
+        Equal(string.Empty, item.Name);
+        Equal(string.Empty, item.TargetPath);
+        Equal(false, string.IsNullOrWhiteSpace(item.Id));
+    });
+}
+
+static void TestUniqueResourceKeys()
+{
+    XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+    foreach (var path in Directory.GetFiles(Path.Combine(FindRepositoryRoot(), "src", "BudsDock", "Resources"), "*.xaml"))
+    {
+        var keys = XDocument.Load(path).Root!.Elements().Select(element =>
+            (string?)element.Attribute(x + "Key") ?? (element.Name.LocalName == "Style" ? "style:" + (string?)element.Attribute("TargetType") : null))
+            .Where(key => key is not null).ToArray();
+        Equal(keys.Length, keys.Distinct().Count());
+    }
+}
+
+static void TestAmbientLighting()
+{
+    var converter = new AmbientGlowOpacityConverter();
+    var culture = System.Globalization.CultureInfo.InvariantCulture;
+    Equal(0d, converter.Convert([true, 0d, true], typeof(double), null!, culture));
+    Equal(0d, converter.Convert([true, 1d, false], typeof(double), null!, culture));
+    Equal(true, (double)converter.Convert([true, 1d, true], typeof(double), null!, culture) <= .3);
+    var xaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "BudsDock", "Views", "DockWindow.xaml"));
+    DoesNotContain("<DropShadowEffect", xaml);
+}
+
+static void TestOriginalIconMigration()
+{
+    WithDataDirectory("original-icons", service =>
+    {
+        File.WriteAllText(service.SettingsPath, """{"SchemaVersion":2,"DefaultIconVisualMode":"Tile","Items":[{"Name":"Old style","VisualMode":"Monochrome","CustomIconPath":"keep.png"}]}""");
+        var settings = service.LoadAsync().GetAwaiter().GetResult();
+        Equal(IconVisualMode.Original, settings.DefaultIconVisualMode);
+        Equal(IconVisualMode.Original, settings.Items[0].VisualMode);
+        Equal("keep.png", settings.Items[0].CustomIconPath);
+        DoesNotContain("VisualMode", File.ReadAllText(service.SettingsPath));
+    });
+}
 
 static void TestPlacementOrientation()
 {
@@ -533,8 +710,10 @@ static void TestDockVisualInvariants()
     var iconSource = File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Services", "IconService.cs"));
     var styles = File.ReadAllText(Path.Combine(root, "src", "BudsDock", "Resources", "Styles.xaml"));
 
-    Contains("<Binding Path=\"VisualMode\"/>", dockXaml);
-    Contains("<Binding Path=\"SelectedItem.VisualMode\"/>", settingsXaml);
+    DoesNotContain("TileVisual", dockXaml);
+    DoesNotContain("MonochromeVisual", dockXaml);
+    DoesNotContain("IconStyleCombo", settingsXaml);
+    DoesNotContain("DefaultIconVisualMode", settingsXaml);
     Contains("IconSizeToGlowSafeMarginConverter", dockXaml);
     Contains("<Binding Path=\"Settings.HoverScale\"/>", dockXaml);
     Contains("<Binding Path=\"Settings.DockScale\"/>", dockXaml);
@@ -639,7 +818,8 @@ static void TestThemeChoices()
     Contains("ThemeMode.Dark", source);
     Contains("ThemeMode.Light", source);
     DoesNotContain("Enum.GetValues<ThemeMode>()", source);
-    DoesNotContain("SystemUsesLightTheme", themeService);
+    Contains("ThemeMode.System", source);
+    Contains("AppsUseLightTheme", themeService);
 }
 
 static Dictionary<string, Rgba> ReadThemeColors(string path)
@@ -692,7 +872,7 @@ static double RelativeLuminance(Rgba color)
 
 static void TestPortableBundle()
 {
-    var root = Path.Combine(Path.GetTempPath(), $"BudsDock-tests-{Guid.NewGuid():N}");
+    var root = Path.Combine(Path.Combine(FindRepositoryRoot(), "artifacts", "tests"), $"BudsDock-tests-{Guid.NewGuid():N}");
     var sourceData = Path.Combine(root, "source");
     var targetData = Path.Combine(root, "target");
     Directory.CreateDirectory(root);
@@ -752,7 +932,7 @@ static void DoesNotContain(string unexpected, string actual)
 static void WithDataDirectory(string scenario, Action<SettingsService> action)
 {
     var previous = Environment.GetEnvironmentVariable("BUDSDOCK_DATA_DIR");
-    var directory = Path.Combine(Path.GetTempPath(), $"BudsDock-tests-{scenario}-{Guid.NewGuid():N}");
+    var directory = Path.Combine(Path.Combine(FindRepositoryRoot(), "artifacts", "tests"), $"BudsDock-tests-{scenario}-{Guid.NewGuid():N}");
     try
     {
         Environment.SetEnvironmentVariable("BUDSDOCK_DATA_DIR", directory);

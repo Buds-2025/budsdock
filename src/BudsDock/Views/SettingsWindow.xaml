@@ -373,7 +373,16 @@
                 </Grid>
 
                 <Grid Grid.Row="1">
-                  <ListBox ItemsSource="{Binding Settings.Items}"
+                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                  <Grid Margin="0,0,0,8">
+                    <TextBox x:Name="IconSearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{DynamicResource Icons.Search}" AutomationProperties.Name="{DynamicResource Icons.Search}"/>
+                    <TextBlock Text="{DynamicResource Icons.Search}" IsHitTestVisible="False" Margin="12,0" VerticalAlignment="Center" Foreground="{DynamicResource TextTertiaryBrush}">
+                      <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SearchText}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                    </TextBlock>
+                  </Grid>
+                  <Button Grid.Row="1" Content="{DynamicResource Action.AddFolder}" Command="{Binding AddFolderCommand}" Margin="0,0,0,12"/>
+                  <ListBox Grid.Row="2" ItemsSource="{Binding ItemsView}"
                            SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                            MouseLeftButtonUp="OnIconListMouseLeftButtonUp"
                            PreviewKeyDown="OnIconListPreviewKeyDown">
@@ -390,9 +399,9 @@
                               <Image.Source>
                                 <MultiBinding Converter="{StaticResource IconImageConverter}">
                                   <Binding/>
-                                  <Binding Path="CustomIconPath"/>
+                                  <Binding Path="IconRevision"/>
+                          <Binding Path="CustomIconPath"/>
                                   <Binding Path="TargetPath"/>
-                                  <Binding Path="VisualMode"/>
                                   <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
                                 </MultiBinding>
                               </Image.Source>
@@ -417,7 +426,13 @@
                     </ListBox.ItemTemplate>
                   </ListBox>
 
-                  <StackPanel Visibility="{Binding Settings.Items.Count, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}"
+                  <TextBlock Grid.Row="2" Text="{DynamicResource Icons.NoResults}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}">
+                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers>
+                      <DataTrigger Binding="{Binding ItemsView.IsEmpty}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                      <DataTrigger Binding="{Binding SearchText}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                    </Style.Triggers></Style></TextBlock.Style>
+                  </TextBlock>
+                  <StackPanel Grid.Row="2" Visibility="{Binding Settings.Items.Count, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}"
                               HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="230">
                     <TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                FontSize="28" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/>
@@ -474,9 +489,9 @@
                           <Image.Source>
                             <MultiBinding Converter="{StaticResource IconImageConverter}">
                               <Binding Path="SelectedItem"/>
-                              <Binding Path="SelectedItem.CustomIconPath"/>
+                              <Binding Path="SelectedItem.IconRevision"/>
+                          <Binding Path="SelectedItem.CustomIconPath"/>
                               <Binding Path="SelectedItem.TargetPath"/>
-                              <Binding Path="SelectedItem.VisualMode"/>
                               <Binding Path="ThemeRevision"/>
                             </MultiBinding>
                           </Image.Source>
@@ -489,14 +504,6 @@
                         <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Field.NameEn}"/>
                         <TextBox Text="{Binding SelectedItem.NameEn, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="{DynamicResource Field.NameEn}" Margin="0,0,0,12"/>
-                        <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Field.IconStyle}"/>
-                        <ComboBox x:Name="IconStyleCombo" ItemsSource="{Binding IconVisualModes}"
-                                  SelectedItem="{Binding SelectedItem.VisualMode, Mode=TwoWay}"
-                                  AutomationProperties.Name="{DynamicResource Field.IconStyle}">
-                          <ComboBox.ItemTemplate>
-                            <DataTemplate><TextBlock Text="{Binding Converter={StaticResource LocalizedEnumConverter}}"/></DataTemplate>
-                          </ComboBox.ItemTemplate>
-                        </ComboBox>
                         <WrapPanel Margin="0,14,0,0">
                           <Button Content="{DynamicResource Action.ChooseIcon}" Command="{Binding ChooseIconCommand}" Margin="0,0,8,8"/>
                           <Button Content="{DynamicResource Action.ResetIcon}" Command="{Binding ResetIconCommand}" Margin="0,0,0,8"/>
@@ -570,6 +577,24 @@
 
               <Border Style="{StaticResource CardBorder}">
                 <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Appearance.Presets}"/>
+                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Appearance.PresetsHelp}" Margin="0,0,0,14"/>
+                  <UniformGrid Columns="3">
+                    <Button Command="{Binding ApplyPresetCommand}" CommandParameter="{x:Static services:AppearancePreset.Studio}" Margin="0,0,6,0" Padding="6,16" AutomationProperties.Name="{DynamicResource Preset.Studio}">
+                      <StackPanel><TextBlock Text="◈" FontSize="25" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center"/><TextBlock Text="{DynamicResource Preset.Studio}" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel>
+                    </Button>
+                    <Button Command="{Binding ApplyPresetCommand}" CommandParameter="{x:Static services:AppearancePreset.Minimal}" Margin="3,0" Padding="6,16" AutomationProperties.Name="{DynamicResource Preset.Minimal}">
+                      <StackPanel><TextBlock Text="⋯" FontSize="25" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/><TextBlock Text="{DynamicResource Preset.Minimal}" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel>
+                    </Button>
+                    <Button Command="{Binding ApplyPresetCommand}" CommandParameter="{x:Static services:AppearancePreset.Classic}" Margin="6,0,0,0" Padding="6,16" AutomationProperties.Name="{DynamicResource Preset.Classic}">
+                      <StackPanel><TextBlock Text="▥" FontSize="25" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"/><TextBlock Text="{DynamicResource Preset.Classic}" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel>
+                    </Button>
+                  </UniformGrid>
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
                   <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Section.Theme}"/>
                   <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Appearance.Theme}"/>
                   <ComboBox x:Name="ThemeCombo" ItemsSource="{Binding ThemeModes}"
@@ -582,17 +607,7 @@
                   </ComboBox>
                   <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Appearance.ThemeHelp}"/>
 
-                  <TextBlock Style="{StaticResource SettingLabel}" Text="{DynamicResource Appearance.DefaultIconStyle}" Margin="0,16,0,6"/>
-                  <ComboBox ItemsSource="{Binding IconVisualModes}"
-                            SelectedItem="{Binding Settings.DefaultIconVisualMode, Mode=TwoWay}"
-                            AutomationProperties.Name="{DynamicResource Appearance.DefaultIconStyle}"
-                            MinWidth="240" HorizontalAlignment="Left">
-                    <ComboBox.ItemTemplate>
-                      <DataTemplate><TextBlock Text="{Binding Converter={StaticResource LocalizedEnumConverter}}"/></DataTemplate>
-                    </ComboBox.ItemTemplate>
-                  </ComboBox>
-                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Appearance.DefaultIconStyleHelp}"/>
-                </StackPanel>
+</StackPanel>
               </Border>
 
               <Border Style="{StaticResource CardBorder}">
@@ -678,6 +693,14 @@
             <StackPanel Margin="28,24,28,20" MaxWidth="1100" HorizontalAlignment="Stretch">
               <TextBlock Style="{StaticResource TitleText}" Text="{DynamicResource Position.Title}"/>
               <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource Position.Help}" Margin="0,4,0,20"/>
+              <Border Style="{StaticResource CardBorder}">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Position.Monitor}"/>
+                  <ComboBox ItemsSource="{Binding Displays}" DisplayMemberPath="Label" SelectedValuePath="Id"
+                            SelectedValue="{Binding Settings.MonitorId}" AutomationProperties.Name="{DynamicResource Position.Monitor}"/>
+                  <TextBlock Style="{StaticResource SettingHelp}" Text="{DynamicResource Position.MonitorHelp}" Margin="0,8,0,0"/>
+                </StackPanel>
+              </Border>
 
               <Border Style="{StaticResource CardBorder}">
                 <StackPanel>

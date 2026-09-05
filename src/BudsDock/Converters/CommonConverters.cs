@@ -57,6 +57,21 @@ public sealed class IconGlowColorConverter : IMultiValueConverter
         => throw new NotSupportedException();
 }
 
+public sealed class AmbientGlowColorConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        var color = values.FirstOrDefault() is DockItem item
+            ? ((App)Application.Current).IconService.GetGlowColor(item) : Colors.LightGray;
+        // Lower chroma, retaining the application's hue without a neon edge.
+        var neutral = (color.R * .2126) + (color.G * .7152) + (color.B * .0722);
+        return Color.FromRgb((byte)(color.R * .45 + neutral * .55),
+            (byte)(color.G * .45 + neutral * .55), (byte)(color.B * .45 + neutral * .55));
+    }
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 public sealed class DisplayNameConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
@@ -161,7 +176,7 @@ public sealed class AmbientGlowOpacityConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         => values.Length >= 3 && values[0] is true && values[1] is double intensity && values[2] is true
-            ? Math.Clamp(intensity * 1.15, 0, 0.78)
+            ? Math.Clamp(intensity * 0.42, 0, 0.30)
             : 0d;
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
@@ -237,7 +252,7 @@ public sealed class LocalizedEnumConverter : IValueConverter
     {
         var key = value switch
         {
-            ThemeMode.System => "Theme.Dark",
+            ThemeMode.System => "Theme.System",
             ThemeMode.Dark => "Theme.Dark",
             ThemeMode.Light => "Theme.Light",
             AppLanguage.System => "Language.System",

@@ -26,6 +26,7 @@ public partial class App : Application
     private StreamWriter? _bindingTraceWriter;
     private bool _rollingBackAutoStart;
     private bool _lastKnownAutoStart;
+    private bool _isDiagnostic;
 
     public App()
     {
@@ -47,6 +48,7 @@ public partial class App : Application
         var isDockVisualTest = e.Args.Contains("--dock-visual-test", StringComparer.OrdinalIgnoreCase);
         var isUiTest = e.Args.Contains("--ui-test", StringComparer.OrdinalIgnoreCase) || isDockVisualTest;
         var isDiagnostic = isSmokeTest || isUiTest;
+        _isDiagnostic = isDiagnostic;
         var mutexName = isSmokeTest
             ? "BudsDock.SmokeTest.SingleInstance"
             : isUiTest
@@ -95,12 +97,12 @@ public partial class App : Application
 
             _dockWindow = new DockWindow(_dockViewModel, SettingsService, _nativeWindowService);
             MainWindow = _dockWindow;
-            _settingsWindow = new SettingsWindow { DataContext = _settingsViewModel };
-            if (isUiTest)
+            if (isDiagnostic) _settingsWindow = new SettingsWindow { DataContext = _settingsViewModel };
+            if (isDiagnostic)
             {
                 _dockWindow.ShowInTaskbar = true;
                 _dockWindow.Title = "BudsDock Dock Test";
-                ApplyDiagnosticWindowSize(e.Args, _settingsWindow);
+                ApplyDiagnosticWindowSize(e.Args, _settingsWindow!);
             }
 
             SettingsService.SettingChanged += OnSettingChanged;
@@ -184,6 +186,7 @@ public partial class App : Application
             if (isSmokeTest)
             {
                 await Task.Delay(1200);
+                await DiagnosticService.ValidateAndCaptureAsync(this, _dockViewModel, _settingsViewModel, _dockWindow, _settingsWindow!);
                 _bindingTraceWriter?.Flush();
                 var bindingLogPath = Path.Combine(SettingsService.DataDirectory, "binding-errors.log");
                 if (File.Exists(bindingLogPath) && new FileInfo(bindingLogPath).Length > 0)
@@ -224,12 +227,19 @@ public partial class App : Application
         _trayService.PlacementRequested += (_, placement) => _dockViewModel?.RequestPlacement(placement);
     }
 
+    public void EditItem(DockItem item)
+    {
+        if (_settingsViewModel is null) return;
+        _settingsViewModel.SearchText = string.Empty;
+        _settingsViewModel.SelectedPageIndex = 0;
+        _settingsViewModel.SelectedItem = item;
+        _settingsViewModel.IsCompactDetailsOpen = true;
+        OpenSettings();
+    }
+
     private void OpenSettings()
     {
-        if (_settingsWindow is null)
-        {
-            return;
-        }
+        _settingsWindow ??= new SettingsWindow { DataContext = _settingsViewModel };
 
         if (!_settingsWindow.IsVisible)
         {
@@ -259,7 +269,7 @@ public partial class App : Application
                 _trayService?.RebuildMenu();
                 break;
             case nameof(AppSettings.AutoStart):
-                if (!_rollingBackAutoStart && _startupService is not null)
+                if (!_isDiagnostic && !_rollingBackAutoStart && _startupService is not null)
                 {
                     var priorState = _startupService.TryGetEnabled(out var actualState)
                         ? actualState
@@ -290,7 +300,7 @@ public partial class App : Application
         var priorAutoStart = _startupService?.TryGetEnabled(out var actualAutoStart) == true
             ? actualAutoStart
             : _lastKnownAutoStart;
-        var startupApplied = _startupService?.Apply(settings.AutoStart) != false;
+        var startupApplied = _isDiagnostic || _startupService?.Apply(settings.AutoStart) != false;
         if (startupApplied)
         {
             _lastKnownAutoStart = settings.AutoStart;
@@ -310,6 +320,13 @@ public partial class App : Application
     {
         Dispatcher.Invoke(() =>
         {
+            if (SettingsService.Settings.ThemeMode == Models.ThemeMode.System)
+            {
+                ThemeService.Apply(Models.ThemeMode.System);
+                IconService.ClearCache();
+                _trayService?.RebuildMenu();
+            }
+            _dockViewModel?.SetHover(null);
             RefreshFixedPlacement();
         });
     }
@@ -319,7 +336,8 @@ public partial class App : Application
 
     private void RefreshFixedPlacement()
     {
-        if (_dockWindow is not null && SettingsService.Settings.Placement != DockPlacement.Free)
+        _settingsViewModel?.RefreshDisplays();
+        if (_dockWindow is not null)
         {
             _dockWindow.ApplyPlacement(SettingsService.Settings.Placement);
         }

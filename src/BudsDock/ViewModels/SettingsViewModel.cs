@@ -14,6 +14,8 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly SettingsService _settingsService;
     private readonly DockViewModel _dockViewModel;
     private DockItem? _selectedItem;
+    private string _searchText = string.Empty;
+    public System.ComponentModel.ICollectionView ItemsView { get; private set; } = null!;
     private int _selectedPageIndex;
     private bool _isCompactDetailsOpen;
     private bool _isRecoveryHotkeyAvailable = true;
@@ -26,6 +28,11 @@ public sealed class SettingsViewModel : ObservableObject
         _dockViewModel = dockViewModel;
 
         AddCommand = CreateAsyncCommand(AddApplicationAsync);
+        AddFolderCommand = CreateAsyncCommand(AddFolderAsync);
+        ApplyPresetCommand = new RelayCommand(value =>
+        {
+            if (value is AppearancePreset preset) AppearancePresetService.Apply(Settings, preset);
+        });
         RemoveCommand = new RelayCommand(RemoveSelected, () => SelectedItem is not null);
         MoveUpCommand = new RelayCommand(() => MoveSelected(-1), () => CanMove(-1));
         MoveDownCommand = new RelayCommand(() => MoveSelected(1), () => CanMove(1));
@@ -57,15 +64,20 @@ public sealed class SettingsViewModel : ObservableObject
         ((App)Application.Current).ThemeService.PropertyChanged += (_, _) => OnPropertyChanged(nameof(ThemeRevision));
     }
 
+    public string SearchText
+    {
+        get => _searchText;
+        set { if (SetProperty(ref _searchText, value)) ItemsView.Refresh(); }
+    }
     public AppSettings Settings => _settingsService.Settings;
     public int ThemeRevision => ((App)Application.Current).ThemeService.Revision;
     public IReadOnlyList<ThemeMode> ThemeModes { get; } =
     [
+        ThemeMode.System,
         ThemeMode.Dark,
         ThemeMode.Light
     ];
     public IReadOnlyList<AppLanguage> Languages { get; } = Enum.GetValues<AppLanguage>();
-    public IReadOnlyList<IconVisualMode> IconVisualModes { get; } = Enum.GetValues<IconVisualMode>();
     public IReadOnlyList<DockPlacement> FixedPlacements { get; } =
     [
         DockPlacement.TopCenter,
@@ -135,6 +147,10 @@ public sealed class SettingsViewModel : ObservableObject
     }
 
     public ICommand AddCommand { get; }
+    public ICommand AddFolderCommand { get; }
+    public ICommand ApplyPresetCommand { get; }
+    public IReadOnlyList<DisplayOption> Displays => DisplayService.GetDisplays();
+    public void RefreshDisplays() => OnPropertyChanged(nameof(Displays));
     public ICommand RemoveCommand { get; }
     public ICommand MoveUpCommand { get; }
     public ICommand MoveDownCommand { get; }
@@ -170,6 +186,12 @@ public sealed class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(RecoveryHotkeyStatusText));
     }
 
+    private async Task AddFolderAsync()
+    {
+        var dialog = new OpenFolderDialog { Multiselect = true, Title = ((App)Application.Current).LocalizationService.Translate("Action.AddFolder") };
+        if (dialog.ShowDialog() == true) await AddAndSelectAsync(dialog.FolderNames);
+    }
+
     private async Task AddApplicationAsync()
     {
         var loc = ((App)Application.Current).LocalizationService;
@@ -192,6 +214,7 @@ public sealed class SettingsViewModel : ObservableObject
         await _dockViewModel.AddFilesAsync(paths);
         if (Settings.Items.Count > previousCount)
         {
+            SearchText = string.Empty;
             SelectedItem = Settings.Items.Last();
         }
     }
@@ -282,6 +305,16 @@ public sealed class SettingsViewModel : ObservableObject
         }
 
         var loc = ((App)Application.Current).LocalizationService;
+        if (SelectedItem.Kind == LaunchTargetKind.Folder)
+        {
+            var folderDialog = new OpenFolderDialog { Title = loc.Translate("Action.BrowseTarget"), InitialDirectory = SelectedItem.TargetPath };
+            if (folderDialog.ShowDialog() == true)
+            {
+                SelectedItem.TargetPath = folderDialog.FolderName;
+                SelectedItem.WorkingDirectory = folderDialog.FolderName;
+            }
+            return Task.CompletedTask;
+        }
         var dialog = new OpenFileDialog
         {
             Title = loc.Translate("Action.BrowseTarget"),
@@ -290,6 +323,7 @@ public sealed class SettingsViewModel : ObservableObject
         };
         if (dialog.ShowDialog() == true)
         {
+            SelectedItem.Kind = LaunchTargetService.Create(dialog.FileName, SelectedItem.VisualMode).Kind;
             SelectedItem.TargetPath = dialog.FileName;
             SelectedItem.WorkingDirectory = Path.GetDirectoryName(dialog.FileName) ?? string.Empty;
             ((App)Application.Current).IconService.ClearCache();
@@ -461,11 +495,22 @@ public sealed class SettingsViewModel : ObservableObject
         {
             _observedItems.CollectionChanged -= OnItemsCollectionChanged;
         }
+        ItemsView = new System.Windows.Data.ListCollectionView(settings.Items);
+        ItemsView.Filter = value => value is DockItem item && (string.IsNullOrWhiteSpace(SearchText)
+            || item.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
+            || item.NameEn.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
+            || item.TargetPath.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+        OnPropertyChanged(nameof(ItemsView));
         _observedItems = settings.Items;
         settings.Items.CollectionChanged += OnItemsCollectionChanged;
     }
 
-    private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => RaiseItemCommandStates();
+    private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (SelectedItem is not null && !Settings.Items.Contains(SelectedItem))
+            SelectedItem = Settings.Items.FirstOrDefault();
+        RaiseItemCommandStates();
+    }
 
     private void OnSelectedItemPropertyChanged(object? sender, PropertyChangedEventArgs e) => RaiseItemCommandStates();
 

@@ -19,6 +19,11 @@ internal static class NativeMethods
     internal const uint ModNoRepeat = 0x4000;
     internal const int VkD = 0x44;
     internal const int WmHotkey = 0x0312;
+    internal const int WmDpiChanged = 0x02E0;
+    internal const uint SwpNoActivate = 0x0010;
+
+    [DllImport("user32.dll")]
+    internal static extern uint GetDpiForWindow(IntPtr window);
     internal const int DwmwaExtendedFrameBounds = 9;
     internal const int DwmwaCloaked = 14;
 

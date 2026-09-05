@@ -123,13 +123,8 @@ public static class AnimatedScaleBehavior
                 : new CubicEase { EasingMode = EasingMode.EaseOut },
             FillBehavior = FillBehavior.Stop
         };
-        animation.Completed += (_, _) =>
-        {
-            scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-            scale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-            scale.ScaleX = targetScale;
-            scale.ScaleY = targetScale;
-        };
+        scale.ScaleX = targetScale;
+        scale.ScaleY = targetScale;
         scale.BeginAnimation(ScaleTransform.ScaleXProperty, animation, HandoffBehavior.SnapshotAndReplace);
         scale.BeginAnimation(ScaleTransform.ScaleYProperty, animation.Clone(), HandoffBehavior.SnapshotAndReplace);
         AnimateOffset(offset, TranslateTransform.XProperty, offset.X, targetX, duration);
@@ -151,11 +146,7 @@ public static class AnimatedScaleBehavior
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
             FillBehavior = FillBehavior.Stop
         };
-        animation.Completed += (_, _) =>
-        {
-            transform.BeginAnimation(property, null);
-            transform.SetValue(property, target);
-        };
+        transform.SetValue(property, target);
         transform.BeginAnimation(property, animation, HandoffBehavior.SnapshotAndReplace);
     }
 }

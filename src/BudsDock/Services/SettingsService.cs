@@ -500,15 +500,19 @@ public sealed class SettingsService : INotifyPropertyChanged
     private static void Normalize(AppSettings settings)
     {
         settings.SchemaVersion = CurrentSchemaVersion;
-        settings.ThemeMode = settings.ThemeMode is ThemeMode.Dark or ThemeMode.Light
+        settings.ThemeMode = Enum.IsDefined(settings.ThemeMode)
             ? settings.ThemeMode
             : ThemeMode.Dark;
         settings.Language = Enum.IsDefined(settings.Language) ? settings.Language : AppLanguage.System;
         settings.Orientation = Enum.IsDefined(settings.Orientation) ? settings.Orientation : DockOrientation.Horizontal;
         settings.Placement = Enum.IsDefined(settings.Placement) ? settings.Placement : DockPlacement.BottomCenter;
-        settings.DefaultIconVisualMode = Enum.IsDefined(settings.DefaultIconVisualMode)
-            ? settings.DefaultIconVisualMode
-            : IconVisualMode.Original;
+        // Retain deserialization compatibility with the removed 1.0 appearance modes.
+        settings.DefaultIconVisualMode = IconVisualMode.Original;
+        settings.RelativeX = settings.RelativeX is double x && double.IsFinite(x) ? Math.Clamp(x, 0, 1) : null;
+        settings.RelativeY = settings.RelativeY is double y && double.IsFinite(y) ? Math.Clamp(y, 0, 1) : null;
+        settings.Left = settings.Left is double left && double.IsFinite(left) ? left : null;
+        settings.Top = settings.Top is double top && double.IsFinite(top) ? top : null;
+        settings.MonitorId ??= DisplayService.Resolve(null).DeviceName;
         settings.Items ??= [];
 
         for (var index = settings.Items.Count - 1; index >= 0; index--)
@@ -519,7 +523,13 @@ public sealed class SettingsService : INotifyPropertyChanged
                 settings.Items.RemoveAt(index);
                 continue;
             }
-            item.VisualMode = Enum.IsDefined(item.VisualMode) ? item.VisualMode : IconVisualMode.Original;
+            item.Name ??= string.Empty;
+            item.NameEn ??= string.Empty;
+            item.TargetPath ??= string.Empty;
+            item.Arguments ??= string.Empty;
+            item.WorkingDirectory ??= string.Empty;
+            if (string.IsNullOrWhiteSpace(item.Id)) item.Id = Guid.NewGuid().ToString("N");
+            item.VisualMode = IconVisualMode.Original;
             item.Kind = Enum.IsDefined(item.Kind) ? item.Kind : LaunchTargetKind.Executable;
         }
     }
@@ -581,6 +591,11 @@ public sealed class SettingsService : INotifyPropertyChanged
                 TrackItem(item);
             }
         }
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            foreach (var tracked in _trackedItems.ToArray()) UntrackItem(tracked);
+            foreach (var item in Settings.Items) TrackItem(item);
+        }
         ScheduleSave();
     }
 
@@ -611,6 +626,7 @@ public sealed class SettingsService : INotifyPropertyChanged
         if (e.PropertyName is nameof(DockItem.HoverScale)
             or nameof(DockItem.HoverOffsetX)
             or nameof(DockItem.HoverOffsetY)
+            or nameof(DockItem.IconRevision)
             or nameof(DockItem.IsHovered))
         {
             return;

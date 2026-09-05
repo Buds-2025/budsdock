@@ -48,7 +48,7 @@
   <sys:String x:Key="Field.RunAsAdmin">以管理员身份运行</sys:String>
 
   <sys:String x:Key="Appearance.Title">外观</sys:String>
-  <sys:String x:Key="Appearance.Subtitle">调整主题、图标布局与Dock动效。</sys:String>
+  <sys:String x:Key="Appearance.Subtitle">从一套预设开始，让尺寸、材质与动效适合你的桌面。</sys:String>
   <sys:String x:Key="Appearance.Theme">界面主题</sys:String>
   <sys:String x:Key="Appearance.Dimensions">尺寸与布局</sys:String>
   <sys:String x:Key="Appearance.ThemeHelp">选择深色或浅色外观，Dock、菜单和设置面板会同步切换。</sys:String>
@@ -62,13 +62,13 @@
   <sys:String x:Key="Appearance.Corner">底板圆角</sys:String>
   <sys:String x:Key="Appearance.Reflection">显示图标倒影</sys:String>
   <sys:String x:Key="Appearance.ReflectionOpacity">倒影强度</sys:String>
-  <sys:String x:Key="Appearance.Hover">启用悬停放大与淡发光</sys:String>
+  <sys:String x:Key="Appearance.Hover">启用悬停放大与柔和环境光</sys:String>
   <sys:String x:Key="Appearance.HoverScale">当前图标悬停倍率</sys:String>
   <sys:String x:Key="Appearance.AdjacentScale">相邻图标悬停倍率</sys:String>
-  <sys:String x:Key="Appearance.Glow">发光强度</sys:String>
+  <sys:String x:Key="Appearance.Glow">环境光强度</sys:String>
 
   <sys:String x:Key="Position.Title">位置与行为</sys:String>
-  <sys:String x:Key="Position.Help">一键定位始终作用于Windows主显示器；底部居中会与屏幕底部保持2.5个任务栏高度。</sys:String>
+  <sys:String x:Key="Position.Help">选择显示器与停靠位置，或拖动Dock空白区域自由移动。</sys:String>
   <sys:String x:Key="Position.Top">顶部居中</sys:String>
   <sys:String x:Key="Position.Bottom">底部居中</sys:String>
   <sys:String x:Key="Position.Left">左侧居中</sys:String>
@@ -118,7 +118,7 @@
   <sys:String x:Key="Message.ConfirmImport">导入会替换当前Dock配置。是否继续？</sys:String>
   <sys:String x:Key="Message.ConfirmResetAppearance">将外观参数恢复为默认值。是否继续？</sys:String>
   <sys:String x:Key="Message.ConfirmRemove">仅从Dock移除该项目，不会删除原程序。是否继续？</sys:String>
-  <sys:String x:Key="Message.OnlyExeLnk">仅支持添加 EXE 和 LNK 文件。</sys:String>
+  <sys:String x:Key="Message.OnlyExeLnk">未添加新项目。支持EXE、LNK和文件夹，重复项目会跳过。</sys:String>
   <sys:String x:Key="Message.AlreadyRunning">BudsDock 已在运行。</sys:String>
   <sys:String x:Key="Message.StartupFailedHard">BudsDock 启动失败。</sys:String>
   <sys:String x:Key="Message.HotkeyUnavailableShort">恢复快捷键不可用，请使用系统托盘恢复交互。</sys:String>
@@ -148,7 +148,7 @@
 
   <sys:String x:Key="Format.ItemCount">{0} 项</sys:String>
   <sys:String x:Key="Format.ReflectionIntensity">倒影强度 · {0:P0}</sys:String>
-  <sys:String x:Key="Format.GlowIntensity">发光强度 · {0:P0}</sys:String>
+  <sys:String x:Key="Format.GlowIntensity">环境光强度 · {0:P0}</sys:String>
   <sys:String x:Key="Format.ExportFilename">BudsDock-配置-{0}.budsdock</sys:String>
 
   <sys:String x:Key="Filter.Applications">应用程序 (*.exe;*.lnk)|*.exe;*.lnk</sys:String>
@@ -158,6 +158,19 @@
   <sys:String x:Key="Dock.ContextSettings">设置</sys:String>
   <sys:String x:Key="Dock.ContextRestoreInteraction">恢复交互</sys:String>
   <sys:String x:Key="Dock.ContextExit">退出 BudsDock</sys:String>
-  <sys:String x:Key="Dock.EmptyDropHint">拖入 EXE 或 LNK 文件</sys:String>
+  <sys:String x:Key="Dock.EmptyDropHint">拖入应用、快捷方式或文件夹</sys:String>
   <sys:String x:Key="Dock.EmptyAddHint">或点击 +</sys:String>
+  <sys:String x:Key="Appearance.Presets">外观预设</sys:String>
+  <sys:String x:Key="Appearance.PresetsHelp">选定即可生效，下面的细节仍可自由调整。简约预设关闭动效与倒影。</sys:String>
+  <sys:String x:Key="Preset.Studio">工作室</sys:String>
+  <sys:String x:Key="Preset.Minimal">简约</sys:String>
+  <sys:String x:Key="Preset.Classic">经典</sys:String>
+  <sys:String x:Key="Position.Monitor">显示器</sys:String>
+  <sys:String x:Key="Position.MonitorHelp">★为主显示器。支持跨屏拖动，断开显示器后自动回到主屏。图标过多时自动缩小以完整显示。</sys:String>
+  <sys:String x:Key="Action.AddFolder">添加文件夹</sys:String>
+  <sys:String x:Key="Icons.Search">搜索名称或路径</sys:String>
+  <sys:String x:Key="Dock.Open">打开</sys:String>
+  <sys:String x:Key="Dock.Edit">编辑图标</sys:String>
+  <sys:String x:Key="Icons.NoResults">没有匹配的项目</sys:String>
+  <sys:String x:Key="Theme.System">跟随系统</sys:String>
 </ResourceDictionary>

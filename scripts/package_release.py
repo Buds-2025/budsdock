@@ -1,26 +1,14 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
+import json
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUTS = ROOT / "outputs"
-PUBLISH = ROOT / "artifacts" / "publish" / "BudsDock-1.0.0-win-x64"
-PORTABLE_ZIP = OUTPUTS / "BudsDock-1.0.0-win-x64-portable.zip"
-
-def add_tree(archive: zipfile.ZipFile, source: Path, archive_root: str) -> None:
-    for path in sorted(source.rglob("*")):
-        if not path.is_file():
-            continue
-        relative = path.relative_to(source)
-        archive.write(path, Path(archive_root) / relative)
-
-
-def create_zip(destination: Path, source: Path, archive_root: str) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        add_tree(archive, source, archive_root)
+VERSION = ET.parse(ROOT / "src/BudsDock/BudsDock.csproj").findtext(".//Version")
 
 
 def sha256(path: Path) -> str:
@@ -31,12 +19,29 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-if not (PUBLISH / "BudsDock.exe").exists():
-    raise SystemExit("Publish output is missing. Run dotnet publish first.")
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Package the current BudsDock release.")
+    parser.add_argument("--variant", choices=["portable", "compact"], default="portable")
+    args = parser.parse_args()
+    name = f"BudsDock-{VERSION}-win-x64-{args.variant}"
+    source = ROOT / "artifacts/publish" / name
+    if not (source / "BudsDock.exe").is_file():
+        raise SystemExit(f"Missing publish output: {source}. Publish this variant first.")
+    output = ROOT / "outputs"
+    output.mkdir(exist_ok=True)
+    destination = output / f"{name}.zip"
+    with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for path in sorted(source.rglob("*")):
+            if path.is_file() and path.suffix.lower() != ".pdb":
+                archive.write(path, Path(name) / path.relative_to(source))
+    checksum = sha256(destination)
+    (output / f"{name}.sha256").write_text(f"{checksum}  {destination.name}\n", encoding="utf-8")
+    manifest = {"version": VERSION, "variant": args.variant, "archive": destination.name,
+                "archiveBytes": destination.stat().st_size, "executableBytes": (source / "BudsDock.exe").stat().st_size,
+                "sha256": checksum, "runtimeRequired": args.variant == "compact"}
+    (output / f"{name}.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    print(json.dumps(manifest, indent=2))
 
-create_zip(PORTABLE_ZIP, PUBLISH, "BudsDock-1.0.0-win-x64")
-checksums = f"{sha256(PORTABLE_ZIP)}  {PORTABLE_ZIP.name}\n"
-(OUTPUTS / "SHA256SUMS.txt").write_bytes(checksums.encode("utf-8"))
 
-for output in (PORTABLE_ZIP, OUTPUTS / "SHA256SUMS.txt"):
-    print(f"{output.name}: {output.stat().st_size} bytes")
+if __name__ == "__main__":
+    main()

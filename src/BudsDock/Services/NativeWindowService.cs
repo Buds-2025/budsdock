@@ -6,7 +6,7 @@ namespace BudsDock.Services;
 
 public sealed class NativeWindowService
 {
-    public bool ApplyClickThrough(IntPtr handle, bool enabled)
+    public bool ApplyClickThrough(IntPtr handle, bool enabled, bool showInTaskbar = false)
     {
         if (handle == IntPtr.Zero)
         {
@@ -19,12 +19,13 @@ public sealed class NativeWindowService
         }
 
         var current = style.ToInt64();
-        var required = NativeMethods.WsExLayered | NativeMethods.WsExToolWindow;
+        if (showInTaskbar) current &= ~NativeMethods.WsExToolWindow;
+        var required = NativeMethods.WsExLayered | (showInTaskbar ? 0 : NativeMethods.WsExToolWindow);
         var updated = enabled
             ? current | required | NativeMethods.WsExTransparent
             : (current | required) & ~NativeMethods.WsExTransparent;
 
-        if (updated == current)
+        if (updated == style.ToInt64())
         {
             return true;
         }
@@ -59,7 +60,7 @@ public sealed class NativeWindowService
         }
     }
 
-    public bool IsForegroundFullscreen()
+    public bool IsForegroundFullscreen(IntPtr dockHandle = default)
     {
         var foreground = NativeMethods.GetForegroundWindow();
         if (foreground == IntPtr.Zero
@@ -98,6 +99,8 @@ public sealed class NativeWindowService
         }
 
         var monitor = NativeMethods.MonitorFromWindow(foreground, NativeMethods.MonitorDefaultToNearest);
+        if (dockHandle != IntPtr.Zero && NativeMethods.MonitorFromWindow(dockHandle, NativeMethods.MonitorDefaultToNearest) != monitor)
+            return false;
         var monitorInfo = new NativeMethods.MonitorInfo { Size = Marshal.SizeOf<NativeMethods.MonitorInfo>() };
         if (monitor == IntPtr.Zero || !NativeMethods.GetMonitorInfo(monitor, ref monitorInfo))
         {

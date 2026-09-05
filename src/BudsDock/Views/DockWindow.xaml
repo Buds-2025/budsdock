@@ -20,6 +20,9 @@
         Drop="OnDrop"
         DragOver="OnDragOver"
         DragLeave="OnDragLeave"
+        ShowActivated="False"
+        UseLayoutRounding="True"
+        PreviewKeyDown="OnDockPreviewKeyDown"
         PreviewMouseLeftButtonDown="OnPreviewMouseLeftButtonDown">
   <Window.ContextMenu>
     <ContextMenu Style="{StaticResource DockContextMenuStyle}">
@@ -58,6 +61,7 @@
     </Style>
   </Window.Resources>
 
+  <Viewbox x:Name="DockViewport" Stretch="Uniform" StretchDirection="DownOnly">
   <Grid x:Name="DockRoot"
         SnapsToDevicePixels="True"
         ClipToBounds="False"
@@ -79,6 +83,17 @@
             BorderThickness="1"
             CornerRadius="{Binding Settings.CornerRadius}"
             Opacity="{Binding Settings.BackgroundOpacity}"/>
+
+    <Border IsHitTestVisible="False" Margin="1" BorderThickness="1" CornerRadius="{Binding Settings.CornerRadius}"
+            Opacity="{Binding Settings.BackgroundOpacity}">
+      <Border.BorderBrush>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+          <GradientStop Color="#48FFFFFF" Offset="0"/>
+          <GradientStop Color="#08FFFFFF" Offset="0.5"/>
+          <GradientStop Color="#18000000" Offset="1"/>
+        </LinearGradientBrush>
+      </Border.BorderBrush>
+    </Border>
 
     <ItemsControl x:Name="DockItems"
                   ItemsSource="{Binding Items}"
@@ -133,8 +148,14 @@
                     Height="{Binding DataContext.Settings.IconSize, RelativeSource={RelativeSource AncestorType=Window}}"
                     Command="{Binding DataContext.LaunchCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                     CommandParameter="{Binding}"
+                    PreviewMouseLeftButtonDown="OnIconPreviewMouseDown"
+                    PreviewMouseMove="OnIconPreviewMouseMove"
+                    ContextMenuOpening="OnIconContextMenuOpening"
+                    ToolTipService.InitialShowDelay="350"
+                    ToolTipService.BetweenShowDelay="100"
                     MouseEnter="OnIconMouseEnter"
                     MouseLeave="OnIconMouseLeave">
+              <Button.ContextMenu><ContextMenu/></Button.ContextMenu>
               <AutomationProperties.Name>
                 <MultiBinding Converter="{StaticResource DisplayNameConverter}">
                   <Binding/>
@@ -157,19 +178,19 @@
               </Button.ToolTip>
 
               <Grid x:Name="IconVisual" ClipToBounds="False" IsHitTestVisible="False">
-                <Ellipse Opacity="0" RenderTransformOrigin="0.5,0.5"
+                <Ellipse Opacity="0" Margin="-8,0,-8,-6" RenderTransformOrigin="0.5,0.85"
                          behaviors:AnimatedOpacityBehavior.AnimationsEnabled="{Binding DataContext.Settings.EnableHoverAnimation, RelativeSource={RelativeSource AncestorType=Window}}">
                   <Ellipse.RenderTransform>
-                    <ScaleTransform ScaleX="1.72" ScaleY="1.72"/>
+                    <ScaleTransform ScaleX="1.12" ScaleY="1.0"/>
                   </Ellipse.RenderTransform>
                   <Ellipse.Fill>
                     <SolidColorBrush>
                       <SolidColorBrush.Color>
-                        <MultiBinding Converter="{StaticResource IconGlowColorConverter}">
+                        <MultiBinding Converter="{StaticResource AmbientGlowColorConverter}">
                           <Binding/>
+                          <Binding Path="IconRevision"/>
                           <Binding Path="CustomIconPath"/>
                           <Binding Path="TargetPath"/>
-                          <Binding Path="VisualMode"/>
                           <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
                         </MultiBinding>
                       </SolidColorBrush.Color>
@@ -183,83 +204,33 @@
                     </MultiBinding>
                   </behaviors:AnimatedOpacityBehavior.TargetOpacity>
                   <Ellipse.OpacityMask>
-                    <RadialGradientBrush>
-                      <GradientStop Color="#C0FFFFFF" Offset="0"/>
-                      <GradientStop Color="#50FFFFFF" Offset="0.46"/>
+                    <RadialGradientBrush Center="0.5,0.65" GradientOrigin="0.5,0.65" RadiusX="0.5" RadiusY="0.35">
+                      <GradientStop Color="#B0FFFFFF" Offset="0"/>
+                      <GradientStop Color="#60FFFFFF" Offset="0.3"/>
+                      <GradientStop Color="#18FFFFFF" Offset="0.65"/>
                       <GradientStop Color="#00FFFFFF" Offset="1"/>
                     </RadialGradientBrush>
                   </Ellipse.OpacityMask>
                 </Ellipse>
 
                 <Grid>
-                  <Grid.Effect>
-                    <DropShadowEffect BlurRadius="{Binding DataContext.Settings.IconSize, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource IconSizeToGlowBlurConverter}}"
-                                      ShadowDepth="0" RenderingBias="Performance">
-                      <DropShadowEffect.Color>
-                        <MultiBinding Converter="{StaticResource IconGlowColorConverter}">
-                          <Binding/>
-                          <Binding Path="CustomIconPath"/>
-                          <Binding Path="TargetPath"/>
-                          <Binding Path="VisualMode"/>
-                          <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                        </MultiBinding>
-                      </DropShadowEffect.Color>
-                      <DropShadowEffect.Opacity>
-                        <MultiBinding Converter="{StaticResource GlowOpacityConverter}">
-                          <Binding Path="IsHovered"/>
-                          <Binding Path="DataContext.Settings.GlowIntensity" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                          <Binding Path="DataContext.Settings.EnableHoverAnimation" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                        </MultiBinding>
-                      </DropShadowEffect.Opacity>
-                    </DropShadowEffect>
-                  </Grid.Effect>
                   <Grid x:Name="IconCore">
                   <Grid x:Name="OriginalVisual">
                   <Image Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality">
                     <Image.Source>
                       <MultiBinding Converter="{StaticResource IconImageConverter}">
                         <Binding/>
-                        <Binding Path="CustomIconPath"/>
+                        <Binding Path="IconRevision"/>
+                          <Binding Path="CustomIconPath"/>
                         <Binding Path="TargetPath"/>
-                        <Binding Path="VisualMode"/>
                         <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
                       </MultiBinding>
                     </Image.Source>
                   </Image>
                 </Grid>
 
-                <Border x:Name="TileVisual" Visibility="Collapsed" Background="{DynamicResource IconTileBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="8">
-                  <Image Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality">
-                    <Image.Source>
-                      <MultiBinding Converter="{StaticResource IconImageConverter}">
-                        <Binding/>
-                        <Binding Path="CustomIconPath"/>
-                        <Binding Path="TargetPath"/>
-                        <Binding Path="VisualMode"/>
-                        <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                      </MultiBinding>
-                    </Image.Source>
-                  </Image>
-                </Border>
-
-                <Rectangle x:Name="MonochromeVisual" Visibility="Collapsed" Fill="{DynamicResource AccentBrush}" Margin="3">
-                  <Rectangle.OpacityMask>
-                    <ImageBrush Stretch="Uniform">
-                      <ImageBrush.ImageSource>
-                        <MultiBinding Converter="{StaticResource IconImageConverter}">
-                          <Binding/>
-                          <Binding Path="CustomIconPath"/>
-                          <Binding Path="TargetPath"/>
-                          <Binding Path="VisualMode"/>
-                          <Binding Path="DataContext.ThemeRevision" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                        </MultiBinding>
-                      </ImageBrush.ImageSource>
-                    </ImageBrush>
-                  </Rectangle.OpacityMask>
-                </Rectangle>
                   </Grid>
                 </Grid>
-                <Border x:Name="HoverIndicator" Width="22" Height="2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Background="{DynamicResource AccentBrush}" CornerRadius="1" Visibility="Collapsed"/>
               </Grid>
             </Button>
 
@@ -290,19 +261,7 @@
               </Rectangle.OpacityMask>
             </Rectangle>
           </Grid>
-          <DataTemplate.Triggers>
-            <DataTrigger Binding="{Binding VisualMode}" Value="{x:Static models:IconVisualMode.Tile}">
-              <Setter TargetName="OriginalVisual" Property="Visibility" Value="Collapsed"/>
-              <Setter TargetName="TileVisual" Property="Visibility" Value="Visible"/>
-            </DataTrigger>
-            <DataTrigger Binding="{Binding VisualMode}" Value="{x:Static models:IconVisualMode.Monochrome}">
-              <Setter TargetName="OriginalVisual" Property="Visibility" Value="Collapsed"/>
-              <Setter TargetName="MonochromeVisual" Property="Visibility" Value="Visible"/>
-            </DataTrigger>
-            <DataTrigger Binding="{Binding IsHovered}" Value="True">
-              <Setter TargetName="HoverIndicator" Property="Visibility" Value="Visible"/>
-            </DataTrigger>
-          </DataTemplate.Triggers>
+
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
@@ -333,4 +292,5 @@
             BorderBrush="{DynamicResource AccentBrush}"
             Background="{DynamicResource AccentSoftBrush}"/>
   </Grid>
+  </Viewbox>
 </Window>

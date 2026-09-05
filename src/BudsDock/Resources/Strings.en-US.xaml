@@ -48,7 +48,7 @@
   <sys:String x:Key="Field.RunAsAdmin">Run as administrator</sys:String>
 
   <sys:String x:Key="Appearance.Title">Appearance</sys:String>
-  <sys:String x:Key="Appearance.Subtitle">Adjust the theme, icon layout, and Dock motion.</sys:String>
+  <sys:String x:Key="Appearance.Subtitle">Start with a preset. Make size, surface and motion suit your desktop.</sys:String>
   <sys:String x:Key="Appearance.Theme">Interface theme</sys:String>
   <sys:String x:Key="Appearance.Dimensions">Dimensions &amp; layout</sys:String>
   <sys:String x:Key="Appearance.ThemeHelp">Choose dark or light. The Dock, menus, and settings panel switch together.</sys:String>
@@ -62,13 +62,13 @@
   <sys:String x:Key="Appearance.Corner">Panel corner radius</sys:String>
   <sys:String x:Key="Appearance.Reflection">Show icon reflection</sys:String>
   <sys:String x:Key="Appearance.ReflectionOpacity">Reflection intensity</sys:String>
-  <sys:String x:Key="Appearance.Hover">Enable hover magnification and soft glow</sys:String>
+  <sys:String x:Key="Appearance.Hover">Hover magnification and ambient light</sys:String>
   <sys:String x:Key="Appearance.HoverScale">Hovered icon scale</sys:String>
   <sys:String x:Key="Appearance.AdjacentScale">Adjacent icon scale</sys:String>
-  <sys:String x:Key="Appearance.Glow">Glow intensity</sys:String>
+  <sys:String x:Key="Appearance.Glow">Ambient light</sys:String>
 
   <sys:String x:Key="Position.Title">Position &amp; behavior</sys:String>
-  <sys:String x:Key="Position.Help">One-click placement targets the primary display. Bottom center stays 2.5 taskbar heights above the screen bottom.</sys:String>
+  <sys:String x:Key="Position.Help">Choose a display and position, or drag an empty area of the Dock.</sys:String>
   <sys:String x:Key="Position.Top">Top center</sys:String>
   <sys:String x:Key="Position.Bottom">Bottom center</sys:String>
   <sys:String x:Key="Position.Left">Left center</sys:String>
@@ -118,7 +118,7 @@
   <sys:String x:Key="Message.ConfirmImport">Importing replaces the current Dock configuration. Continue?</sys:String>
   <sys:String x:Key="Message.ConfirmResetAppearance">Reset all appearance values to their defaults. Continue?</sys:String>
   <sys:String x:Key="Message.ConfirmRemove">This only removes the item from the Dock. The original app is not deleted. Continue?</sys:String>
-  <sys:String x:Key="Message.OnlyExeLnk">Only EXE and LNK files can be added.</sys:String>
+  <sys:String x:Key="Message.OnlyExeLnk">No new items added. Use EXE, LNK or folders; duplicates are skipped.</sys:String>
   <sys:String x:Key="Message.AlreadyRunning">BudsDock is already running.</sys:String>
   <sys:String x:Key="Message.StartupFailedHard">BudsDock failed to start.</sys:String>
   <sys:String x:Key="Message.HotkeyUnavailableShort">Recovery hotkey unavailable. Use the tray icon to restore interaction.</sys:String>
@@ -151,7 +151,7 @@
   <!-- Format strings (parameterised) -->
   <sys:String x:Key="Format.ItemCount">{0} items</sys:String>
   <sys:String x:Key="Format.ReflectionIntensity">Reflection intensity · {0:P0}</sys:String>
-  <sys:String x:Key="Format.GlowIntensity">Glow intensity · {0:P0}</sys:String>
+  <sys:String x:Key="Format.GlowIntensity">Ambient light · {0:P0}</sys:String>
   <sys:String x:Key="Format.ExportFilename">BudsDock-settings-{0}.budsdock</sys:String>
 
   <!-- OpenFileDialog / SaveFileDialog filters -->
@@ -163,6 +163,19 @@
   <sys:String x:Key="Dock.ContextSettings">Settings</sys:String>
   <sys:String x:Key="Dock.ContextRestoreInteraction">Restore interaction</sys:String>
   <sys:String x:Key="Dock.ContextExit">Exit BudsDock</sys:String>
-  <sys:String x:Key="Dock.EmptyDropHint">Drop an EXE or LNK here</sys:String>
+  <sys:String x:Key="Dock.EmptyDropHint">Drop apps, shortcuts or folders</sys:String>
   <sys:String x:Key="Dock.EmptyAddHint">Or click +</sys:String>
+  <sys:String x:Key="Appearance.Presets">Appearance presets</sys:String>
+  <sys:String x:Key="Appearance.PresetsHelp">Apply a look, then fine-tune below. Minimal disables motion and reflections.</sys:String>
+  <sys:String x:Key="Preset.Studio">Studio</sys:String>
+  <sys:String x:Key="Preset.Minimal">Minimal</sys:String>
+  <sys:String x:Key="Preset.Classic">Classic</sys:String>
+  <sys:String x:Key="Position.Monitor">Display</sys:String>
+  <sys:String x:Key="Position.MonitorHelp">★ marks the primary display. Drag between screens; disconnected displays fall back to primary. Large Docks shrink to fit.</sys:String>
+  <sys:String x:Key="Action.AddFolder">Add folder</sys:String>
+  <sys:String x:Key="Icons.Search">Search names or paths</sys:String>
+  <sys:String x:Key="Dock.Open">Open</sys:String>
+  <sys:String x:Key="Dock.Edit">Edit icon</sys:String>
+  <sys:String x:Key="Icons.NoResults">No matching items</sys:String>
+  <sys:String x:Key="Theme.System">Follow Windows</sys:String>
 </ResourceDictionary>

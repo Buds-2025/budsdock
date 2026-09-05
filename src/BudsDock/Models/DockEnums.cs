@@ -42,5 +42,6 @@ public enum LaunchTargetKind
     Executable,
     Shortcut,
     ShellUri,
-    SystemCommand
+    SystemCommand,
+    Folder
 }
