@@ -9,6 +9,9 @@ using BudsDock.Models;
 using BudsDock.Services;
 using BudsDock.ViewModels;
 
+if (args.Contains("--fullscreen-probe")) return WindowRecoveryTests.RunProbe();
+if (args.Contains("--window-tests")) return WindowRecoveryTests.Run();
+
 var tests = new (string Name, Action Run)[]
 {
     ("Top and bottom placements are horizontal", TestPlacementOrientation),

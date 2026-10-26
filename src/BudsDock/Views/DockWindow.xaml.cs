@@ -20,6 +20,9 @@ public partial class DockWindow : Window
     private readonly NativeWindowService _nativeWindowService;
     private readonly DispatcherTimer _fullscreenTimer;
     private HwndSource? _source;
+    private WindowActivityMonitor? _windowActivityMonitor;
+    private DispatcherOperation? _visibilityOperation;
+    private bool _closed;
     private IntPtr _handle;
     private bool _hiddenForFullscreen;
     private bool _applyingPlacement;
@@ -45,13 +48,13 @@ public partial class DockWindow : Window
         SizeChanged += OnSizeChanged;
         Closing += OnClosing;
         Closed += OnClosed;
+        StateChanged += (_, _) => RequestVisibilityCheck();
         _viewModel.PlacementRequested += OnPlacementRequested;
         _settingsService.SettingChanged += OnSettingChanged;
         _settingsService.SettingsReplaced += OnSettingsReplaced;
 
-        _fullscreenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
+        _fullscreenTimer = new DispatcherTimer(DispatcherPriority.Normal) { Interval = TimeSpan.FromMilliseconds(500) };
         _fullscreenTimer.Tick += OnFullscreenTimerTick;
-        if (_viewModel.Settings.HideOnFullscreen) _fullscreenTimer.Start();
     }
 
     public bool RecoveryHotkeyRegistered { get; private set; }
@@ -64,6 +67,8 @@ public partial class DockWindow : Window
         {
             Show();
         }
+        _nativeWindowService.RestoreWithoutActivation(_handle);
+        _nativeWindowService.EnsureTopmost(_handle, _viewModel.Settings.Topmost, raise: true);
         _hiddenForFullscreen = false;
         Activate();
     }
@@ -166,6 +171,7 @@ public partial class DockWindow : Window
         Topmost = _viewModel.Settings.Topmost;
         ApplyPlacement(_viewModel.Settings.Placement);
         ApplyClickThrough();
+        RequestVisibilityCheck();
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
@@ -173,6 +179,8 @@ public partial class DockWindow : Window
         _handle = new WindowInteropHelper(this).Handle;
         _source = HwndSource.FromHwnd(_handle);
         _source?.AddHook(WindowProcedure);
+        _windowActivityMonitor = new WindowActivityMonitor(RequestVisibilityCheck);
+        _fullscreenTimer.Start();
         RecoveryHotkeyRegistered = _nativeWindowService.RegisterRecoveryHotkey(_handle, RecoveryHotkeyId);
         ApplyClickThrough();
     }
@@ -458,11 +466,11 @@ public partial class DockWindow : Window
         switch (e.PropertyName)
         {
             case nameof(AppSettings.HideOnFullscreen):
-                if (_viewModel.Settings.HideOnFullscreen) _fullscreenTimer.Start(); else _fullscreenTimer.Stop();
                 OnFullscreenTimerTick(null, EventArgs.Empty);
                 break;
             case nameof(AppSettings.MonitorId):
                 ApplyPlacement(_viewModel.Settings.Placement);
+                RequestVisibilityCheck();
                 break;
             case nameof(AppSettings.IsClickThrough):
                 ApplyClickThrough();
@@ -506,7 +514,6 @@ public partial class DockWindow : Window
     private void OnSettingsReplaced(object? sender, EventArgs e)
     {
         Topmost = _viewModel.Settings.Topmost;
-        if (_viewModel.Settings.HideOnFullscreen) _fullscreenTimer.Start(); else _fullscreenTimer.Stop();
         OnFullscreenTimerTick(null, EventArgs.Empty);
         ApplyClickThrough();
         ApplyPlacement(_viewModel.Settings.Placement);
@@ -538,24 +545,50 @@ public partial class DockWindow : Window
         }
     }
 
-    private void OnFullscreenTimerTick(object? sender, EventArgs e)
+    private void RequestVisibilityCheck()
     {
-        var shouldHide = _viewModel.Settings.HideOnFullscreen
-            && _nativeWindowService.IsForegroundFullscreen(_handle);
+        if (_closed || Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished
+            || _visibilityOperation is { Status: DispatcherOperationStatus.Pending }) return;
+        _visibilityOperation = Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+        {
+            _visibilityOperation = null;
+            UpdateVisibility(raise: true);
+        }));
+    }
 
-        if (shouldHide && !_hiddenForFullscreen)
+    private void OnFullscreenTimerTick(object? sender, EventArgs e) => UpdateVisibility();
+
+    private void UpdateVisibility(bool raise = false)
+    {
+        if (_closed || _handle == IntPtr.Zero || ((App)Application.Current).IsShuttingDown) return;
+        var shouldHide = _viewModel.Settings.HideOnFullscreen
+            ? _nativeWindowService.IsForegroundFullscreen(_viewModel.Settings.MonitorId) : false;
+        if (shouldHide is null) return;
+
+        if (shouldHide.Value)
         {
             _hiddenForFullscreen = true;
-            ClearHover();
-            Hide();
+            if (IsVisible)
+            {
+                ClearHover();
+                Hide();
+            }
         }
-        else if (!shouldHide && _hiddenForFullscreen)
+        else
         {
+            var restore = _hiddenForFullscreen || !IsVisible || _nativeWindowService.NeedsVisibilityRecovery(_handle);
             _hiddenForFullscreen = false;
-            Show();
-            ClearHover();
-            Topmost = _viewModel.Settings.Topmost;
-            ApplyClickThrough();
+            if (restore)
+            {
+                // Show() alone does not undo system minimization, and assigning
+                // the same WPF Topmost value does not repair native z-order.
+                if (!IsVisible) Show();
+                _nativeWindowService.RestoreWithoutActivation(_handle);
+                ClearHover();
+                ApplyClickThrough();
+                ApplyPlacement(_viewModel.Settings.Placement);
+            }
+            _nativeWindowService.EnsureTopmost(_handle, _viewModel.Settings.Topmost, raise || restore);
         }
     }
 
@@ -570,6 +603,9 @@ public partial class DockWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        _closed = true;
+        _visibilityOperation?.Abort();
+        _windowActivityMonitor?.Dispose();
         _fullscreenTimer.Stop();
         _nativeWindowService.UnregisterRecoveryHotkey(_handle, RecoveryHotkeyId);
         _source?.RemoveHook(WindowProcedure);

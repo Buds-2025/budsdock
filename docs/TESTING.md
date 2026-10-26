@@ -1,3 +1,16 @@
+# 1.0.2验收入口
+
+构建与发行包验证继续使用`scripts/verify_release.ps1`。基础回归测试为45项；增加`-WindowTests`可同时运行12项真实窗口恢复测试。窗口测试会使用普通测试窗口和独立进程的无边框全屏窗口，需要可交互的Windows桌面。
+
+```powershell
+dotnet run --project .\tests\BudsDock.Tests\BudsDock.Tests.csproj -c Release -p:Platform=x64 -- --window-tests
+.\scripts\verify_release.ps1 -WindowTests
+```
+
+窗口测试覆盖系统最小化、关闭全屏避让后的恢复、底层窗口被隐藏、置顶状态丢失、保持非置顶偏好、快捷键恢复路径、全屏进入与退出、50次连续切换、界面线程阻塞1.8秒后的恢复，以及全屏期间最小化和切换避让设置。结果保存在`artifacts/window-tests`。
+
+实机还应检查桌面快捷键返回、任务视图、浏览器F11、全屏视频和常用游戏。不同显卡、独占全屏游戏、混合DPI与多显示器组合需要分别验收。此次修复与本机验证结果见[1.0.2验收说明](UPGRADE-1.0.2.md)。
+
 # 1.0.1验收入口
 
 当前版本的构建、发行包和真实WPF集成验证使用项目`scripts/verify_release.ps1`。该脚本运行45项回归测试，并检查Portable、Compact两种发行包的深色中文与浅色英文界面。运行之前先按README发布两种版本。

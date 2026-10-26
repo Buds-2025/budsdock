@@ -9,6 +9,15 @@ internal static class NativeMethods
     internal const long WsExTransparent = 0x00000020L;
     internal const long WsExToolWindow = 0x00000080L;
     internal const long WsExLayered = 0x00080000L;
+    internal const long WsExTopmost = 0x00000008L;
+    internal static readonly IntPtr HwndTopmost = new(-1);
+    internal static readonly IntPtr HwndNotTopmost = new(-2);
+    internal const int SwShowNoActivate = 4;
+    internal const uint EventSystemForeground = 0x0003;
+    internal const uint EventSystemMoveSizeEnd = 0x000B;
+    internal const uint EventSystemMinimizeStart = 0x0016;
+    internal const uint EventSystemMinimizeEnd = 0x0017;
+    internal const uint EventSystemDesktopSwitch = 0x0020;
     internal const uint SwpNoSize = 0x0001;
     internal const uint SwpNoMove = 0x0002;
     internal const uint SwpNoZOrder = 0x0004;
@@ -53,6 +62,21 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     internal static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ShowWindow(IntPtr window, int command);
+
+    internal delegate void WinEventProc(IntPtr hook, uint eventType, IntPtr window,
+        int objectId, int childId, uint eventThread, uint eventTime);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr module,
+        WinEventProc callback, uint processId, uint threadId, uint flags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool UnhookWinEvent(IntPtr hook);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

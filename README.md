@@ -1,4 +1,4 @@
-# BudsDock 1.0.1
+# BudsDock 1.0.2
 
 BudsDock是一款面向Windows 11 x64的桌面快捷启动栏，使用WPF与.NET 10构建。支持应用、快捷方式和文件夹，多显示器定位，深浅主题，以及本地配置备份。
 
@@ -8,10 +8,16 @@ BudsDock是一款面向Windows 11 x64的桌面快捷启动栏，使用WPF与.NET
 
 | 版本 | 压缩包 | 运行要求 |
 | --- | --- | --- |
-| Portable完整版 | `BudsDock-1.0.1-win-x64-portable.zip`，约64.10MB | 自带运行时，无需预装.NET |
-| Compact小体积版 | `BudsDock-1.0.1-win-x64-compact.zip`，约236KB | 已安装.NET 10 Desktop Runtime x64 |
+| Portable完整版 | `BudsDock-1.0.2-win-x64-portable.zip`，约64.15MB | 自带运行时，无需预装.NET |
+| Compact小体积版 | `BudsDock-1.0.2-win-x64-compact.zip`，约237KB | 已安装.NET 10 Desktop Runtime x64 |
 
 .NET SDK和Desktop Runtime均可运行Compact；仅安装基础.NET Runtime不包含WPF。下载运行时可访问[微软.NET 10下载页](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)。两个版本功能一致，配置位置相同。完整大小、SHA-256和版本信息见发行包旁的JSON与SHA256文件。MB按1,000,000字节计算。
+
+## 1.0.2的修复
+
+修复从全屏应用切回桌面或普通窗口后，Dock延迟出现、持续消失，以及被系统最小化后无法恢复的问题。前台窗口切换、最小化结束和桌面切换会触发状态检查；另保留500毫秒的兜底检查，处理漏发事件和底层窗口状态变化。恢复时检查Windows实际的可见性、最小化和置顶状态，自动恢复不抢占当前应用焦点。关闭全屏避让后，系统最小化恢复仍然有效。
+
+Portable内置.NET 10.0.14。现有图标、位置、外观和开机启动设置继续使用。修复原因与验证范围见[1.0.2验收说明](docs/UPGRADE-1.0.2.md)。
 
 ## 1.0.1的改进
 
@@ -21,7 +27,7 @@ BudsDock是一款面向Windows 11 x64的桌面快捷启动栏，使用WPF与.NET
 
 可以选择Dock所在显示器，也可通过拖动空白区域跨屏移动。Dock记忆显示器和屏幕内相对位置；显示器断开时回到主屏，重新连接后恢复到已保存显示器。顶部、底部横向排列，左右两侧纵向排列。图标过多或缩放过大时自动缩小以适应工作区。全屏避让只响应Dock所在屏幕上的前台全屏窗口。
 
-外部图标使用两个后台解码槽，图片最长边限制为256像素，图像缓存限制为256项。Shell图标优先请求256像素版本，失败后回退到关联图标。异步加载完成后同时更新Dock、列表和详情预览。设置窗口在首次打开时创建；关闭全屏避让时停止轮询，开启时每1.5秒检查一次。
+外部图标使用两个后台解码槽，图片最长边限制为256像素，图像缓存限制为256项。Shell图标优先请求256像素版本，失败后回退到关联图标。异步加载完成后同时更新Dock、列表和详情预览。设置窗口在首次打开时创建。1.0.1的全屏检查采用1.5秒轮询，1.0.2已改为窗口事件响应与500毫秒兜底检查。
 
 发布目标调整为`net10.0-windows`，移除未使用的Windows SDK与WinRT投影程序集；Portable仅携带中英文卫星资源。没有对WPF程序集进行不受支持的裁剪，也未加入第三方NuGet包。完整版压缩包比1.0.0发行包减少约15.7％。
 
@@ -50,18 +56,21 @@ BudsDock是一款面向Windows 11 x64的桌面快捷启动栏，使用WPF与.NET
 ```powershell
 dotnet build .\BudsDock.sln -c Release -p:Platform=x64
 dotnet run --project .\tests\BudsDock.Tests\BudsDock.Tests.csproj -c Release -p:Platform=x64
+dotnet run --project .\tests\BudsDock.Tests\BudsDock.Tests.csproj -c Release -p:Platform=x64 -- --window-tests
 
-dotnet publish .\src\BudsDock\BudsDock.csproj -c Release -p:Platform=x64 -p:PublishProfile=Portable -o .\artifacts\publish\BudsDock-1.0.1-win-x64-portable
-dotnet publish .\src\BudsDock\BudsDock.csproj -c Release -p:Platform=x64 -p:PublishProfile=Compact -o .\artifacts\publish\BudsDock-1.0.1-win-x64-compact
+dotnet publish .\src\BudsDock\BudsDock.csproj -c Release -p:Platform=x64 -p:PublishProfile=Portable -o .\artifacts\publish\BudsDock-1.0.2-win-x64-portable
+dotnet publish .\src\BudsDock\BudsDock.csproj -c Release -p:Platform=x64 -p:PublishProfile=Compact -o .\artifacts\publish\BudsDock-1.0.2-win-x64-compact
 python .\scripts\package_release.py --variant portable
 python .\scripts\package_release.py --variant compact
 .\scripts\verify_release.ps1
 ```
 
-45项自动化测试覆盖定位、外观参数、配置迁移与恢复、并发保存、目录分类、缓存刷新、图片解码、资源一致性等。发布验证脚本对两种发行包分别执行960×680深色中文与640×480浅色英文检查，并执行真实WPF环境中的搜索隔离、图标排序、300个并发图标加载和缓存上限验证。截图、日志、测试数据均存入项目`artifacts`目录，不自动批量清理。
+45项基础回归测试覆盖定位、外观参数、配置迁移与恢复、并发保存、目录分类、缓存刷新、图片解码、资源一致性等。另有12项真实窗口恢复测试，包含跨进程全屏窗口、连续50次退出全屏、界面线程阻塞后恢复、最小化、置顶与焦点检查。窗口测试需要可交互的Windows桌面，会短暂切换测试窗口；可通过`verify_release.ps1 -WindowTests`一并运行。
+
+发布验证脚本对两种发行包分别执行960×680深色中文与640×480浅色英文检查，并执行真实WPF环境中的搜索隔离、图标排序、300个并发图标加载和缓存上限验证。截图、日志、测试数据均存入项目`artifacts`目录，不自动批量清理。
 
 审查结论、测量口径和验证边界见[升级验收报告](docs/UPGRADE-1.0.1.md)。旧版设计与审查文档可通过Git历史查阅。
 
 ## English
 
-BudsDock is a Windows 11 x64 launcher built with WPF and .NET 10. Version 1.0.1 adds appearance presets, restrained ambient lighting, drag reordering, folder shortcuts, independent settings search, selectable displays, asynchronous bounded icon loading and a compact framework-dependent distribution. Portable includes the runtime; Compact requires .NET 10 Desktop Runtime x64.
+BudsDock is a Windows 11 x64 launcher built with WPF and .NET 10. Version 1.0.2 fixes Dock recovery after fullscreen transitions and system minimization, using window events with a periodic fallback and native visibility repair without stealing focus. Portable includes .NET 10.0.14; Compact requires .NET 10 Desktop Runtime x64.

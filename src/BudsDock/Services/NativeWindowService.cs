@@ -60,11 +60,32 @@ public sealed class NativeWindowService
         }
     }
 
-    public bool IsForegroundFullscreen(IntPtr dockHandle = default)
+    public bool NeedsVisibilityRecovery(IntPtr handle)
+        => handle != IntPtr.Zero && (!NativeMethods.IsWindowVisible(handle) || NativeMethods.IsIconic(handle));
+
+    public void RestoreWithoutActivation(IntPtr handle)
+    {
+        if (NeedsVisibilityRecovery(handle))
+            NativeMethods.ShowWindow(handle, NativeMethods.SwShowNoActivate);
+    }
+
+    public void EnsureTopmost(IntPtr handle, bool topmost, bool raise = false)
+    {
+        if (handle == IntPtr.Zero) return;
+        var matches = NativeMethods.TryGetWindowLongPtr(handle, NativeMethods.GwlExStyle, out var style)
+            && ((style.ToInt64() & NativeMethods.WsExTopmost) != 0) == topmost;
+        if (matches && !(raise && topmost)) return;
+        NativeMethods.SetWindowPos(handle, topmost ? NativeMethods.HwndTopmost : NativeMethods.HwndNotTopmost,
+            0, 0, 0, 0, NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoActivate);
+    }
+
+    // A null foreground is transient during shell switches. Keep the previous
+    // visibility until Windows supplies a foreground window on the next check.
+    public bool? IsForegroundFullscreen(string? monitorId)
     {
         var foreground = NativeMethods.GetForegroundWindow();
-        if (foreground == IntPtr.Zero
-            || NativeMethods.IsOwnProcessWindow(foreground)
+        if (foreground == IntPtr.Zero) return null;
+        if (NativeMethods.IsOwnProcessWindow(foreground)
             || !NativeMethods.IsWindowVisible(foreground)
             || NativeMethods.IsIconic(foreground))
         {
@@ -83,7 +104,7 @@ public sealed class NativeWindowService
 
         var className = new StringBuilder(128);
         NativeMethods.GetClassName(foreground, className, className.Capacity);
-        if (className.ToString() is "Progman" or "WorkerW" or "Shell_TrayWnd")
+        if (className.ToString() is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd")
         {
             return false;
         }
@@ -99,13 +120,18 @@ public sealed class NativeWindowService
         }
 
         var monitor = NativeMethods.MonitorFromWindow(foreground, NativeMethods.MonitorDefaultToNearest);
-        if (dockHandle != IntPtr.Zero && NativeMethods.MonitorFromWindow(dockHandle, NativeMethods.MonitorDefaultToNearest) != monitor)
-            return false;
         var monitorInfo = new NativeMethods.MonitorInfo { Size = Marshal.SizeOf<NativeMethods.MonitorInfo>() };
         if (monitor == IntPtr.Zero || !NativeMethods.GetMonitorInfo(monitor, ref monitorInfo))
         {
             return false;
         }
+
+        // A minimized HWND can be parked off-screen. Resolve the configured
+        // display instead of using its temporary native window coordinates.
+        var target = DisplayService.Resolve(monitorId).Bounds;
+        if (monitorInfo.Monitor.Left != target.Left || monitorInfo.Monitor.Top != target.Top
+            || monitorInfo.Monitor.Right != target.Right || monitorInfo.Monitor.Bottom != target.Bottom)
+            return false;
 
         const int tolerance = 8;
         return Math.Abs(windowRect.Left - monitorInfo.Monitor.Left) <= tolerance

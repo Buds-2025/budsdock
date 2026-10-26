@@ -1,4 +1,4 @@
-param([switch]$SkipBuild)
+param([switch]$SkipBuild, [switch]$WindowTests)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $projectRoot
@@ -10,6 +10,10 @@ try {
     }
     dotnet run --project tests/BudsDock.Tests/BudsDock.Tests.csproj -c Release -p:Platform=x64 --no-build
     if ($LASTEXITCODE -ne 0) { throw 'Regression tests failed.' }
+    if ($WindowTests) {
+        dotnet run --project tests/BudsDock.Tests/BudsDock.Tests.csproj -c Release -p:Platform=x64 --no-build -- --window-tests
+        if ($LASTEXITCODE -ne 0) { throw 'Window recovery tests failed.' }
+    }
     [xml]$projectXml = Get-Content src/BudsDock/BudsDock.csproj -Encoding UTF8
     $releaseVersion = $projectXml.Project.PropertyGroup.Version | Select-Object -First 1
     $evidenceRoot = Join-Path $projectRoot ('artifacts/validation/' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
