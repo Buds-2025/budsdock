@@ -1,4 +1,4 @@
-# BudsDock 1.0.2
+# BudsDock 1.0.3
 
 BudsDock是一款面向Windows 11 x64的桌面快捷启动栏，使用WPF与.NET 10构建。支持应用、快捷方式和文件夹，多显示器定位，深浅主题，以及本地配置备份。
 
@@ -8,10 +8,16 @@ BudsDock是一款面向Windows 11 x64的桌面快捷启动栏，使用WPF与.NET
 
 | 版本 | 压缩包 | 运行要求 |
 | --- | --- | --- |
-| Portable完整版 | `BudsDock-1.0.2-win-x64-portable.zip`，约64.15MB | 自带运行时，无需预装.NET |
-| Compact小体积版 | `BudsDock-1.0.2-win-x64-compact.zip`，约237KB | 已安装.NET 10 Desktop Runtime x64 |
+| Portable完整版 | `BudsDock-1.0.3-win-x64-portable.zip`，约64.15MB | 自带运行时，无需预装.NET |
+| Compact小体积版 | `BudsDock-1.0.3-win-x64-compact.zip`，约239KB | 已安装.NET 10 Desktop Runtime x64 |
 
 .NET SDK和Desktop Runtime均可运行Compact；仅安装基础.NET Runtime不包含WPF。下载运行时可访问[微软.NET 10下载页](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)。两个版本功能一致，配置位置相同。完整大小、SHA-256和版本信息见发行包旁的JSON与SHA256文件。MB按1,000,000字节计算。
+
+## 1.0.3的修复
+
+修复关闭“保持置顶”后，按Win＋D显示桌面时Dock被桌面图标层遮住的问题。系统可能仍将Dock标记为可见且未最小化，因此需要检查实际窗口层级。1.0.3会把Dock恢复到桌面之上，继续保留非置顶设置及普通应用的窗口层级，恢复时不抢焦点。
+
+新增20轮桌面层级恢复检查，以及非置顶Dock仍处于普通应用下方的检查。可通过`verify_release.ps1 -DesktopTests`运行。
 
 ## 1.0.2的修复
 
@@ -57,9 +63,10 @@ Portable内置.NET 10.0.14。现有图标、位置、外观和开机启动设置
 dotnet build .\BudsDock.sln -c Release -p:Platform=x64
 dotnet run --project .\tests\BudsDock.Tests\BudsDock.Tests.csproj -c Release -p:Platform=x64
 dotnet run --project .\tests\BudsDock.Tests\BudsDock.Tests.csproj -c Release -p:Platform=x64 -- --window-tests
+dotnet run --project .\tests\BudsDock.Tests\BudsDock.Tests.csproj -c Release -p:Platform=x64 -- --desktop-tests
 
-dotnet publish .\src\BudsDock\BudsDock.csproj -c Release -p:Platform=x64 -p:PublishProfile=Portable -o .\artifacts\publish\BudsDock-1.0.2-win-x64-portable
-dotnet publish .\src\BudsDock\BudsDock.csproj -c Release -p:Platform=x64 -p:PublishProfile=Compact -o .\artifacts\publish\BudsDock-1.0.2-win-x64-compact
+dotnet publish .\src\BudsDock\BudsDock.csproj -c Release -p:Platform=x64 -p:PublishProfile=Portable -o .\artifacts\publish\BudsDock-1.0.3-win-x64-portable
+dotnet publish .\src\BudsDock\BudsDock.csproj -c Release -p:Platform=x64 -p:PublishProfile=Compact -o .\artifacts\publish\BudsDock-1.0.3-win-x64-compact
 python .\scripts\package_release.py --variant portable
 python .\scripts\package_release.py --variant compact
 .\scripts\verify_release.ps1
@@ -73,4 +80,4 @@ python .\scripts\package_release.py --variant compact
 
 ## English
 
-BudsDock is a Windows 11 x64 launcher built with WPF and .NET 10. Version 1.0.2 fixes Dock recovery after fullscreen transitions and system minimization, using window events with a periodic fallback and native visibility repair without stealing focus. Portable includes .NET 10.0.14; Compact requires .NET 10 Desktop Runtime x64.
+BudsDock is a Windows 11 x64 launcher built with WPF and .NET 10. Version 1.0.3 fixes the non-topmost Dock disappearing behind the desktop after Win+D, while preserving normal application stacking order and focus. Portable includes .NET 10.0.14; Compact requires .NET 10 Desktop Runtime x64.

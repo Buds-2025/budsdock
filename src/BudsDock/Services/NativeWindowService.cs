@@ -79,6 +79,37 @@ public sealed class NativeWindowService
             0, 0, 0, 0, NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoActivate);
     }
 
+    public void EnsureAboveDesktop(IntPtr handle)
+    {
+        var shell = NativeMethods.GetShellWindow();
+        if (handle == IntPtr.Zero || shell == IntPtr.Zero) return;
+        var foreground = NativeMethods.GetForegroundWindow();
+        var className = new StringBuilder(128);
+        NativeMethods.GetClassName(foreground, className, className.Capacity);
+        var desktopForeground = className.ToString() is "Progman" or "WorkerW" ? foreground : IntPtr.Zero;
+
+        // Show Desktop can raise the desktop above a non-minimizable tool
+        // window without changing WS_VISIBLE, WS_EX_TOPMOST or IsIconic.
+        var previous = NativeMethods.GetWindow(handle, NativeMethods.GwHwndPrevious);
+        for (var count = 0; previous != IntPtr.Zero && count < 512; count++)
+        {
+            if ((previous == shell || previous == desktopForeground) && NativeMethods.IsWindowVisible(previous))
+            {
+                var insertAfter = NativeMethods.GetWindow(previous, NativeMethods.GwHwndPrevious);
+                // Inserting after a topmost window could promote the Dock.
+                // HWND_TOP instead keeps it in the ordinary window band.
+                if (insertAfter != IntPtr.Zero
+                    && NativeMethods.TryGetWindowLongPtr(insertAfter, NativeMethods.GwlExStyle, out var style)
+                    && (style.ToInt64() & NativeMethods.WsExTopmost) != 0)
+                    insertAfter = IntPtr.Zero;
+                NativeMethods.SetWindowPos(handle, insertAfter, 0, 0, 0, 0,
+                    NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoActivate);
+                return;
+            }
+            previous = NativeMethods.GetWindow(previous, NativeMethods.GwHwndPrevious);
+        }
+    }
+
     // A null foreground is transient during shell switches. Keep the previous
     // visibility until Windows supplies a foreground window on the next check.
     public bool? IsForegroundFullscreen(string? monitorId)

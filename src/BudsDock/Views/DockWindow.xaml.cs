@@ -589,6 +589,7 @@ public partial class DockWindow : Window
                 ApplyPlacement(_viewModel.Settings.Placement);
             }
             _nativeWindowService.EnsureTopmost(_handle, _viewModel.Settings.Topmost, raise || restore);
+            if (!_viewModel.Settings.Topmost) _nativeWindowService.EnsureAboveDesktop(_handle);
         }
     }
 

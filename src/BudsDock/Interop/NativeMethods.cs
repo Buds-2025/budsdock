@@ -22,6 +22,7 @@ internal static class NativeMethods
     internal const uint SwpNoMove = 0x0002;
     internal const uint SwpNoZOrder = 0x0004;
     internal const uint SwpFrameChanged = 0x0020;
+    internal const uint GwHwndPrevious = 3;
     internal const uint MonitorDefaultToNearest = 0x00000002;
     internal const uint ModAlt = 0x0001;
     internal const uint ModControl = 0x0002;
@@ -62,6 +63,12 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     internal static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    internal static extern IntPtr GetShellWindow();
+
+    [DllImport("user32.dll")]
+    internal static extern IntPtr GetWindow(IntPtr window, uint command);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

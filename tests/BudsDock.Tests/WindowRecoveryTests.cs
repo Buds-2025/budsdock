@@ -12,6 +12,98 @@ using BudsDock.Views;
 
 internal static class WindowRecoveryTests
 {
+    public static int RunDesktop() => OnStaThread(() =>
+    {
+        var app = new TestApp { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        foreach (var resource in new[] { "Styles.xaml", "Theme.Dark.xaml", "Strings.zh-CN.xaml" })
+            app.Resources.MergedDictionaries.Add(new ResourceDictionary
+                { Source = new Uri($"/BudsDock;component/Resources/{resource}", UriKind.Relative) });
+        var data = Path.Combine(RepositoryRoot(), "artifacts", "desktop-tests", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+        Environment.SetEnvironmentVariable("BUDSDOCK_DATA_DIR", data);
+        var service = new SettingsService();
+        Await(service.LoadAsync());
+        service.Settings.AutoStart = false;
+        service.Settings.HideOnFullscreen = false;
+        var dock = new DockWindow(new DockViewModel(service, new LauncherService()), service, new NativeWindowService());
+        dock.Show();
+        var ordinary = new Window { Title = "BudsDock Desktop Test Control", Width = 320, Height = 160,
+            Left = 20, Top = 20, WindowStartupLocation = WindowStartupLocation.Manual };
+        ordinary.Show();
+        Pump(600);
+        var handle = new WindowInteropHelper(dock).Handle;
+        var root = (FrameworkElement)dock.FindName("DockRoot");
+        var output = new List<string>();
+        var failures = 0;
+        dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("Shell.Application")!)!;
+        void Snapshot(string label)
+        {
+            var point = root.PointToScreen(new Point(root.ActualWidth / 2, root.ActualHeight / 2));
+            var hit = WindowFromPoint(new NativePoint((int)point.X, (int)point.Y));
+            GetWindowThreadProcessId(hit, out var hitProcess);
+            DwmGetWindowAttribute(handle, 14, out var cloaked, sizeof(int));
+            var className = new System.Text.StringBuilder(128);
+            GetClassName(hit, className, className.Capacity);
+            var foregroundClass = new System.Text.StringBuilder(128);
+            GetClassName(GetForegroundWindow(), foregroundClass, foregroundClass.Capacity);
+            output.Add($"{label}: visible={IsWindowVisible(handle)} iconic={IsIconic(handle)} cloaked={cloaked} "
+                + $"topmost={(GetWindowLongPtr(handle, -20).ToInt64() & 8) != 0} hitClass={className} hitSelf={hitProcess == Environment.ProcessId} "
+                + $"foreground={foregroundClass} controlMinimized={IsIconic(new WindowInteropHelper(ordinary).Handle)}");
+            Console.WriteLine(output[^1]);
+        }
+        try
+        {
+            Snapshot("Before Show Desktop");
+            for (var cycle = 0; cycle < 20; cycle++)
+            {
+                service.Settings.Topmost = cycle % 2 == 0;
+                service.Settings.HideOnFullscreen = cycle % 4 >= 2;
+                ordinary.WindowState = WindowState.Normal;
+                ordinary.Activate();
+                Pump(100);
+                if (!service.Settings.Topmost)
+                    SetWindowPos(handle, GetShellWindow(), 0, 0, 0, 0, 0x13);
+                shell.ToggleDesktop();
+                try
+                {
+                    Pump(1000);
+                    Snapshot($"Show Desktop {cycle} (topmost={service.Settings.Topmost}, avoidance={service.Settings.HideOnFullscreen})");
+                    var topmost = (GetWindowLongPtr(handle, -20).ToInt64() & 8) != 0;
+                    if (!IsAboveWindow(handle, GetShellWindow()) || IsIconic(handle)
+                        || !IsWindowVisible(handle) || topmost != service.Settings.Topmost
+                        || GetForegroundWindow() == handle)
+                    {
+                        failures++;
+                        output.Add($"FAIL  Show Desktop {cycle} covered the Dock");
+                    }
+                    else output.Add($"PASS  Show Desktop {cycle} kept the Dock visible");
+                }
+                finally { shell.ToggleDesktop(); Pump(600); }
+            }
+            service.Settings.Topmost = false;
+            service.Settings.HideOnFullscreen = false;
+            ordinary.WindowState = WindowState.Normal;
+            var ordinaryHandle = new WindowInteropHelper(ordinary).Handle;
+            SetWindowPos(ordinaryHandle, IntPtr.Zero, 0, 0, 0, 0, 0x13);
+            SetWindowPos(handle, GetShellWindow(), 0, 0, 0, 0, 0x13);
+            Pump(800);
+            var staysBelowApp = IsAboveWindow(ordinaryHandle, handle) && IsAboveWindow(handle, GetShellWindow());
+            output.Add(staysBelowApp ? "PASS  Desktop repair keeps ordinary apps above a non-topmost Dock"
+                : "FAIL  Desktop repair changed the ordinary-app stacking order");
+            if (!staysBelowApp) failures++;
+        }
+        finally
+        {
+            File.WriteAllLines(Path.Combine(data, "results.txt"), output);
+            Marshal.FinalReleaseComObject(shell);
+            service.StopScheduledSave();
+            ordinary.Close();
+            app.Shutdown();
+            Environment.SetEnvironmentVariable("BUDSDOCK_DATA_DIR", null);
+        }
+        Console.WriteLine($"Desktop failures: {failures}; Evidence: {data}");
+        return failures == 0 ? 0 : 1;
+    });
+
     public static int Run() => OnStaThread(() =>
     {
         var app = new TestApp();
@@ -279,6 +371,17 @@ internal static class WindowRecoveryTests
         return condition();
     }
 
+    private static bool IsAboveWindow(IntPtr window, IntPtr other)
+    {
+        var previous = GetWindow(other, 3);
+        for (var count = 0; previous != IntPtr.Zero && count < 512; count++)
+        {
+            if (previous == window) return true;
+            previous = GetWindow(previous, 3);
+        }
+        return false;
+    }
+
     private static void Pump(int milliseconds)
     {
         var frame = new DispatcherFrame();
@@ -304,11 +407,17 @@ internal static class WindowRecoveryTests
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern IntPtr GetShellWindow();
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
     [DllImport("user32.dll")] private static extern bool AllowSetForegroundWindow(uint processId);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
+    [StructLayout(LayoutKind.Sequential)] private readonly record struct NativePoint(int X, int Y);
+    [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(NativePoint point);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, System.Text.StringBuilder name, int count);
+    [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);
+    [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr window, uint command);
 
     private sealed class TestApp : App
     {

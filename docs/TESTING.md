@@ -1,3 +1,11 @@
+# 1.0.3验收入口
+
+运行`dotnet run --project tests/BudsDock.Tests/BudsDock.Tests.csproj -c Release -p:Platform=x64 -- --desktop-tests`，或在发行包验证时使用`scripts/verify_release.ps1 -DesktopTests`。
+
+测试调用Windows Shell的`ToggleDesktop`接口，并在非置顶场景中将测试Dock放到桌面窗口下方，复现可见标记和最小化状态均正常、实际被桌面遮挡的故障。20轮检查覆盖置顶与全屏避让的四种组合，检查真实窗口层级、可见性、最小化状态、置顶偏好与焦点；另检查修复不会把非置顶Dock提到普通应用之上。证据存入`artifacts/desktop-tests`。
+
+桌面测试需要可交互的Windows桌面，会短暂切换桌面。不能用普通窗口的最小化测试代替桌面层级检查。
+
 # 1.0.2验收入口
 
 构建与发行包验证继续使用`scripts/verify_release.ps1`。基础回归测试为45项；增加`-WindowTests`可同时运行12项真实窗口恢复测试。窗口测试会使用普通测试窗口和独立进程的无边框全屏窗口，需要可交互的Windows桌面。

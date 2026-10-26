@@ -11,6 +11,7 @@ using BudsDock.ViewModels;
 
 if (args.Contains("--fullscreen-probe")) return WindowRecoveryTests.RunProbe();
 if (args.Contains("--window-tests")) return WindowRecoveryTests.Run();
+if (args.Contains("--desktop-tests")) return WindowRecoveryTests.RunDesktop();
 
 var tests = new (string Name, Action Run)[]
 {
