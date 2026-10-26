@@ -1,0 +1,9 @@
+{
+  "version": "1.0.2",
+  "variant": "portable",
+  "archive": "BudsDock-1.0.2-win-x64-portable.zip",
+  "archiveBytes": 64152529,
+  "executableBytes": 69951247,
+  "sha256": "4716af0e7f7551775bf8d4243fdaf521b6d0b223c20a6155161d5d8a1014496c",
+  "runtimeRequired": false
+}

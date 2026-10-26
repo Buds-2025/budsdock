@@ -1,0 +1,81 @@
+{
+  "version": "1.0.2",
+  "sourceCommit": "f0fe19ec9d6dfe20839fd4cc6c74f15e99ffc422",
+  "platform": "Windows 11 x64",
+  "sdk": "10.0.302",
+  "portableRuntime": "10.0.14",
+  "build": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "regressionTests": {
+    "passed": 45,
+    "total": 45
+  },
+  "windowTests": {
+    "passed": 12,
+    "total": 12,
+    "fullscreenExitCycles": 50,
+    "dispatcherBlockedMilliseconds": 1800,
+    "results": [
+      "PASS  System minimization recovers without a fullscreen-hide flag",
+      "PASS  System minimization recovers with fullscreen avoidance disabled",
+      "PASS  A hidden native window recovers when WPF still considers it visible",
+      "PASS  Lost native topmost state is repaired",
+      "PASS  Non-topmost preference survives minimization recovery",
+      "PASS  Recovery hotkey path restores a minimized Dock",
+      "PASS  Foreground fullscreen hides Dock before the fallback timer",
+      "PASS  Leaving fullscreen restores Dock without taking focus",
+      "PASS  50 repeated fullscreen-to-desktop transitions recover promptly",
+      "PASS  A busy UI thread recovers after pending foreground events are delivered",
+      "PASS  Minimization during fullscreen stays hidden until fullscreen exits",
+      "PASS  Disabling fullscreen avoidance restores a hidden Dock immediately"
+    ]
+  },
+  "packageSmokeTests": [
+    {
+      "Variant": "portable",
+      "Theme": "Dark",
+      "Checks": [
+        "Search isolation",
+        "Dock reorder",
+        "Async icon completion",
+        "Bounded concurrent icon cache"
+      ],
+      "ExitCode": 0
+    },
+    {
+      "Variant": "portable",
+      "Theme": "Light",
+      "Checks": [
+        "Search isolation",
+        "Dock reorder",
+        "Async icon completion",
+        "Bounded concurrent icon cache"
+      ],
+      "ExitCode": 0
+    },
+    {
+      "Variant": "compact",
+      "Theme": "Dark",
+      "Checks": [
+        "Search isolation",
+        "Dock reorder",
+        "Async icon completion",
+        "Bounded concurrent icon cache"
+      ],
+      "ExitCode": 0
+    },
+    {
+      "Variant": "compact",
+      "Theme": "Light",
+      "Checks": [
+        "Search isolation",
+        "Dock reorder",
+        "Async icon completion",
+        "Bounded concurrent icon cache"
+      ],
+      "ExitCode": 0
+    }
+  ]
+}
