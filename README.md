@@ -9,7 +9,7 @@ BudsDock是一款面向Windows 11 x64的桌面快捷启动栏，使用WPF与.NET
 | 版本 | 压缩包 | 运行要求 |
 | --- | --- | --- |
 | Portable完整版 | `BudsDock-1.0.3-win-x64-portable.zip`，约64.15MB | 自带运行时，无需预装.NET |
-| Compact小体积版 | `BudsDock-1.0.3-win-x64-compact.zip`，约239KB | 已安装.NET 10 Desktop Runtime x64 |
+| Compact小体积版 | `BudsDock-1.0.3-win-x64-compact.zip`，约238KB | 已安装.NET 10 Desktop Runtime x64 |
 
 .NET SDK和Desktop Runtime均可运行Compact；仅安装基础.NET Runtime不包含WPF。下载运行时可访问[微软.NET 10下载页](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)。两个版本功能一致，配置位置相同。完整大小、SHA-256和版本信息见发行包旁的JSON与SHA256文件。MB按1,000,000字节计算。
 
